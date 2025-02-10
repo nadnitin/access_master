@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>Atos ALL</title>
+    <script>
+        function loadPage(page, dropdown) {
+            // Reset the other dropdowns to default value
+
+
+
+            // Load the new page
+            document.getElementById("iframe").src = page;
+        }
+
+    </script>
+    <style>
+        /* Reset default styles */
+        * {
+            box-sizing: border-box;
+            margin: auto;
+            padding: auto;
+        }
+
+        /* Navigation Styles */
+        nav {
+            background-color: #3c8dbc;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+          
+            /* Allow items to wrap to the next line */
+        }
+
+        nav li {
+            margin-right: 20px;
+            position: relative;
+            
+        }
+
+        nav li a {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            border: solid rgb(32, 8, 8);
+            background-color: #928f07;
+
+        }
+
+        nav li a:hover {
+            background-color: rgb(150, 224, 30);
+        }
+
+        /* Select Dropdown Styles */
+        select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3c8dbc;
+            color: #fafafa;
+            font-size: 16px;
+            font-weight: bold;
+            appearance: none;
+            background-repeat: no-repeat;
+            background-size: 20px 30px;
+
+        }
+
+        /* Logout Link Styles */
+        .log {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px;
+            position: absolute;
+            right: 60px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            background-color: #f0763d;
+        }
+
+        .log:hover {
+            background-color: rgba(180, 99, 6, 0.911);
+        }
+
+        /* Username Styles */
+        .user {
+            color: #fffcfc;
+            padding: 10px;
+            font-size: 16px;
+            position: absolute;
+            right: 200px
+        }
+
+        iframe {
+            width: 100vw;
+            height: 100vh;
+            /* Adjust height as per your requirement */
+            border: none;
+            /* Remove border */
+        }
+
+        @media screen and (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            nav li {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .log {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .user {
+                margin-left: 0;
+                margin-top: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+
+</head>
+
+<body onload="hide()">
+    <nav>
+        <ul>
+
+
+            <li><a id="home" onclick="loadPage('home.html')">Access Master</a></li>
+            <li><a id="user"  onclick="loadPage('user.html')"> Create login </a></li>
+
+            <a id="username" class="user"> User ID </a>
+            <a class="log" onclick="logoutUser()">Log Out</a>
+        </ul>
+    </nav>
+    <iframe class="iframe" id="iframe" src=""></iframe>
+</body>
+
+</html>
+<script>
+
+function hideCreateLogin() {
+    const createLoginItem = document.getElementById('user');
+    const username = localStorage.getItem("username");
+
+    if (username === "nadnitin") {
+     
+        createLoginItem.style.display = "block";  // Show if username is "nadnitin"
+    } else {
+        createLoginItem.style.display = "none";   // Hide otherwise
+    }
+}
+
+// Ensure the function runs after page loads
+function hide() {
+
+    hideCreateLogin(); 
+};
+
+
+
+
+    function logoutUser() {
+        localStorage.removeItem("username");
+        localStorage.removeItem("status");
+        localStorage.removeItem("lastActivity");
+        localStorage.removeItem("name");
+        window.location.href = "index.html"; // Redirect to login page
+
+    }
+
+
+
+    var nitin = localStorage.getItem("name");
+    if (nitin == "secrate") {
+
+    } else {
+        ;
+        window.location.href = "index.html";
+    }
+
+
+    if (localStorage.getItem('name') === 'logout') {
+
+        window.location.href = 'index.html';
+    } else {
+
+        var sessionTimeout = setTimeout(function () {
+
+            localStorage.setItem("name", "logout");
+            localStorage.setItem("state", "");
+            localStorage.setItem("role", "");
+            localStorage.setItem("username", "");
+            localStorage.setItem("account_status", "");
+
+            window.location.href = 'index.html';
+        }, 1800000);
+
+        // Reset session timeout on user activity
+        window.addEventListener('mousemove', function () {
+            clearTimeout(sessionTimeout);
+            sessionTimeout = setTimeout(function () {
+
+                localStorage.setItem("name", "logout");
+                localStorage.setItem("state", "");
+                localStorage.setItem("role", "");
+                localStorage.setItem("username", "");
+                localStorage.setItem("account_status", "");;
+
+                window.location.href = 'index.html';
+            }, 1800000);
+        });
+    }
+    var username = localStorage.getItem("username");
+    document.getElementById("username").innerHTML = "User: " + username;
+
+
+
+    function disableRightClick(event) {
+        event.preventDefault(); // Prevent default right-click behavior
+    }
+
+    // Add event listener to the document for the contextmenu event (right-click)
+    document.addEventListener('contextmenu', disableRightClick);
+
+
+
+</script>
