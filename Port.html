@@ -190,7 +190,7 @@ var nitin = localStorage.getItem("name");
             // Disable button & show loader
             searchButton.disabled = true;
             loader.style.display = "block";
-            resultTable.style.display = "none"; // Hide table while searching
+            resultTable.style.display = "none"; 
 
             fetch(`${apiUrl}?site_id=${sapCode}`)
                 .then(response => response.text())
