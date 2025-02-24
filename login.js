@@ -59,7 +59,9 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         }
 
         let flagValue = parseInt(foundUser.flag, 10);
-        setSession(foundUser.username, foundUser.status);
+        
+        // **Passing role to session storage**
+        setSession(foundUser.username, foundUser.status, foundUser.role);
 
         if (flagValue === 1) {
             showPasswordResetPopup(userDocId, foundUser);
@@ -121,9 +123,10 @@ window.closePasswordResetPopup = function() {
 }
 
 // **Session Management Functions**
-function setSession(username, status) {
+function setSession(username, status, role) {
     localStorage.setItem("username", username);
     localStorage.setItem("name", "secrate");
+    localStorage.setItem("role", role);  // **Now storing role in localStorage**
     localStorage.setItem("status", status);
     localStorage.setItem("lastActivity", Date.now()); // Store current time
 }
@@ -150,6 +153,7 @@ function logoutUser() {
     localStorage.removeItem("username");
     localStorage.removeItem("status");
     localStorage.removeItem("lastActivity");
+    localStorage.removeItem("role"); // **Remove role on logout**
     window.location.href = "index.html"; // Redirect to login page
 }
 
