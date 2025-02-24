@@ -87,6 +87,7 @@
       document.getElementById("username").value = data.username || "";
       document.getElementById("password").value = "Atos@123";
       document.getElementById("status").value = data.status || "Active";
+      document.getElementById("role").value = data.role || "User";
       document.getElementById("flag").value = "1";
       document.getElementById("modal").style.display = "flex";
     }
@@ -95,20 +96,21 @@
       document.getElementById("modal").style.display = "none";
     }
 
-    window.saveUser  = async function() {
+    window.saveUser = async function() {
       if (!ensureModalElements()) return;
       const id = document.getElementById("userId").value;
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
       const status = document.getElementById("status").value;
+      const role = document.getElementById("role").value;
       const flag = "1";
 
       try {
         if (id) {
-          await updateDoc(doc(db, "users", id), { username, password: btoa(password), status, flag });
-          alert("User  updated successfully!");
+          await updateDoc(doc(db, "users", id), { username, password: btoa(password), status, role, flag });
+          alert("User updated successfully!");
         } else {
-          await addDoc(collection(db, "users"), { username, password: btoa(password), status, flag });
+          await addDoc(collection(db, "users"), { username, password: btoa(password), status, role, flag });
           alert("New user added successfully!");
         }
         closePopup();
@@ -126,8 +128,8 @@
       querySnapshot.forEach(doc => {
         const row = tableBody.insertRow();
         row.insertCell(0).textContent = doc.data().username;
-        row.insertCell(1).innerHTML = "<input type='password' value='" + atob(doc.data().password) + "' readonly>";
-        row.insertCell(2).textContent = doc.data().status;
+        row.insertCell(1).textContent = doc.data().status;
+        row.insertCell(2).textContent = doc.data().role;
         row.insertCell(3).textContent = doc.data().flag;
         const editCell = row.insertCell(4);
         const editBtn = document.createElement("button");
@@ -137,32 +139,7 @@
       });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      fetchUsers();
-      document.getElementById("searchBar").addEventListener("input", searchUsers);
-    });
-
-    async function searchUsers() {
-      const searchTerm = document.getElementById("searchBar").value.toLowerCase();
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const tableBody = document.getElementById("userTable").getElementsByTagName("tbody")[0];
-      tableBody.innerHTML = "";
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.username.toLowerCase().includes(searchTerm)) {
-          const row = tableBody.insertRow();
-          row.insertCell(0).textContent = data.username;
-          row.insertCell(1).innerHTML = "<input type='password' value='" + atob(data.password) + "' readonly>";
-          row.insertCell(2).textContent = data.status;
-          row.insertCell(3).textContent = data.flag;
-          const editCell = row.insertCell(4);
-          const editBtn = document.createElement("button");
-          editBtn.textContent = "Edit";
-          editBtn.onclick = () => showPopup("edit", doc.id, data);
-          editCell.appendChild(editBtn);
-        }
-      });
-    }
+    document.addEventListener("DOMContentLoaded", fetchUsers);
   </script>
 </head>
 <body>
@@ -173,8 +150,8 @@
     <thead>
       <tr>
         <th>Username</th>
-        <th>Password</th>
         <th>Status</th>
+        <th>Role</th>
         <th>Flag</th>
         <th>Action</th>
       </tr>
@@ -195,8 +172,14 @@
         <option value="Active">Active</option>
         <option value="Inactive">Inactive</option>
       </select><br><br>
+      <label>Role:</label>
+      <select id="role">
+        <option value="admin">Admin</option>
+        <option value="FE">FE</option>
+        <option value="SL">SL</option>
+      </select><br><br>
       <input type="hidden" id="flag">
-      <button onclick="saveUser ()">Save</button>
+      <button onclick="saveUser()">Save</button>
       <button onclick="closePopup()">Cancel</button>
     </div>
   </div>
