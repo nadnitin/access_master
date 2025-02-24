@@ -17,22 +17,64 @@
       color: #333;
     }
 
-    /* Search Bar */
+    #searchContainer {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
     #searchBar {
       width: 250px;
       padding: 8px 12px;
       font-size: 14px;
-      margin-bottom: 20px;
-      margin-left: auto;
-      margin-right: auto;
-      display: block;
       border: 1px solid #ccc;
       border-radius: 4px;
       background-color: #fff;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    /* Table Styles */
+    #searchButton, #allDataButton {
+      padding: 8px 12px;
+      font-size: 14px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 4px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #searchButton:hover, #allDataButton:hover {
+      background-color: #45a049;
+    }
+
+    .copy-btn {
+      padding: 5px 10px;
+      font-size: 12px;
+      border: none;
+      border-radius: 4px;
+      background-color: #008CBA;
+      color: white;
+      cursor: pointer;
+      margin: 5px 0;
+      display: block;
+      position: relative;
+    }
+    
+    .notification {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #fa0008;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+      white-space: nowrap;
+    }
+
     table {
       width: 100%;
       margin-top: 20px;
@@ -46,8 +88,9 @@
       padding: 12px;
       text-align: left;
       font-size: 14px;
-      border: 1px solid #ddd; /* Border for table cells */
-      white-space: nowrap; /* Prevent text wrapping */
+      border: 1px solid #ddd;
+      white-space: nowrap;
+      position: relative;
     }
 
     th {
@@ -63,60 +106,16 @@
     tr:hover {
       background-color: #f1f1f1;
     }
-
-    /* Button Styles */
-    button {
-      padding: 6px 12px;
-      font-size: 12px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-      background-color: #45a049;
-    }
-
-    /* Popup Notification */
-    #popup {
-      position: absolute;
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 4px;
-      display: none;
-      font-size: 14px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-    }
-
-    /* Make the page responsive */
-    @media (max-width: 768px) {
-      #searchBar {  
-        width: 100%;
-      }
-
-      table {
-        font-size: 12px;
-      }
-
-      th, td {
-        padding: 10px;
-      }
-    }
   </style>
 </head>
 <body>
-
   <h1>Site Access Master</h1>
- 
 
-  <!-- Search bar -->
-  <input type="text" id="searchBar" placeholder="Search by Site Code or Site Name" oninput="filterTable()">
-
+  <div id="searchContainer">
+    <input type="text" id="searchBar" placeholder="Enter Site Code">
+    <button id="searchButton" onclick="fetchData()">Submit</button>
+    <button id="allDataButton" onclick="fetchAllData()" style="display: none;">All Data</button>
+  </div>
 
   <table id="data-table">
     <thead>
@@ -125,7 +124,6 @@
         <th>Site Name</th>
         <th>IP</th>
         <th>Date Time</th>
-        <!--<th>HTTP Access</th>-->
       </tr>
     </thead>
     <tbody>
@@ -133,134 +131,73 @@
     </tbody>
   </table>
 
-  <!-- Popup notification -->
-  <div id="popup">Address copied to clipboard!</div>
-
   <script>
-
-var nitin = localStorage.getItem("name");
-  if (nitin == "secrate") {
-  
-  } else {
-   ;
-    window.location.href = "index.html";
-  }
-  
-  
-    if (localStorage.getItem('name') === 'logout') {
-      
-      window.location.href = 'index.html';
-    } else {
-      
-      var sessionTimeout = setTimeout(function () {
-        
-        localStorage.setItem("name","logout");
-      localStorage.setItem("state","");
-      localStorage.setItem("role","");
-      localStorage.setItem("username","");
-      localStorage.setItem("account_status","");
-        
-        window.location.href = 'index.html';
-      }, 1800000); 
-  
-      // Reset session timeout on user activity
-      window.addEventListener('mousemove', function () {
-        clearTimeout(sessionTimeout);
-        sessionTimeout = setTimeout(function () {
-          
-          localStorage.setItem("name","logout");
-      localStorage.setItem("state","");
-      localStorage.setItem("role","");
-      localStorage.setItem("username","");
-      localStorage.setItem("account_status","");;
-          
-          window.location.href = 'index.html';
-        }, 1800000); 
-      });
-    }
-    
-
-    
+    document.addEventListener("DOMContentLoaded", function() {
+      if (localStorage.getItem('role') === 'admin') {
+        document.getElementById("allDataButton").style.display = "inline-block";
+      }
+    });
 
     const apiUrl = 'https://script.google.com/macros/s/AKfycby-i1r4HmOf2kpJiHFdnaG4uvwnI1mXXDBSrGbVI4Mseafo1Z5YZ61N9LsD14uKFbk7/exec';
 
     function fetchData() {
+      const siteCode = document.getElementById('searchBar').value.trim();
+      if (siteCode === "") {
+        document.querySelector("#data-table tbody").innerHTML = "";
+        return;
+      }
       fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-          const tableBody = document.getElementById('data-table').getElementsByTagName('tbody')[0];
-          const tableData = data.content.slice(1);  // Skip the header row
-
-          tableData.forEach(item => {
-            const row = tableBody.insertRow();
-            row.insertCell(0).textContent = item[0];
-            row.insertCell(1).textContent = item[1];
-            const ipAddresses = item[2].split(/\s+/);
-
-            const sshCell = row.insertCell(2);
-            sshCell.innerHTML = ipAddresses.map(ip => {
-              return `<button class="copy-btn" onclick="copyToClipboard('${ip.trim()}', this)">Copy Address</button>`;
-            }).join('<br>');
-
-            const dateTimeCell = row.insertCell(3);
-            const date = new Date(item[3]);
-            const formattedDate = `${("0" + date.getDate()).slice(-2)}-${("0" + (date.getMonth() + 1)).slice(-2)}-${date.getFullYear()} ${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)}`;
-            dateTimeCell.textContent = formattedDate;
-
-            // const httpCell = row.insertCell(4);
-            // httpCell.innerHTML = ipAddresses.map(ip => {
-            //   const url = `http://[${ip.trim()}]:8080`;
-            //   return `<button class="copy-btn" onclick="window.open('${url}', '_blank')">Open HTTP</button>`;
-            // }).join('<br>');
-          });
+          populateTable(data.content.slice(1).filter(item => Array.isArray(item) && String(item[0]).includes(siteCode)));
         })
         .catch(error => console.error('Error fetching data:', error));
     }
 
-    function copyToClipboard(command, button) {
-      const textArea = document.createElement("textarea");
-      textArea.value = command;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-
-      const buttonRect = button.getBoundingClientRect();
-      const popup = document.getElementById('popup');
-
-      popup.style.left = `${buttonRect.left + window.scrollX}px`;
-      popup.style.top = `${buttonRect.bottom + window.scrollY + 5}px`;  // Position slightly below the button
-      popup.style.display = 'block';
-
-      setTimeout(() => {
-        popup.style.display = 'none';
-      }, 2000);
+    function fetchAllData() {
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          populateTable(data.content.slice(1));
+        })
+        .catch(error => console.error('Error fetching all data:', error));
     }
 
-    function filterTable() {
-      const filter = document.getElementById('searchBar').value.toLowerCase();
-      const table = document.getElementById('data-table');
-      const rows = table.getElementsByTagName('tr');
-
-      for (let i = 1; i < rows.length; i++) {
-        const cells = rows[i].getElementsByTagName('td');
-        const siteCode = cells[0].textContent.toLowerCase();
-        const siteName = cells[1].textContent.toLowerCase();
-
-        if (siteCode.indexOf(filter) > -1 || siteName.indexOf(filter) > -1) {
-          rows[i].style.display = "";
-        } else {
-          rows[i].style.display = "none";
-        }
-      }
+    function populateTable(data) {
+      const tableBody = document.getElementById('data-table').getElementsByTagName('tbody')[0];
+      tableBody.innerHTML = "";
+      
+      data.forEach(item => {
+        const row = tableBody.insertRow();
+        row.insertCell(0).textContent = item[0] || "N/A";
+        row.insertCell(1).textContent = item[1] || "N/A";
+        
+        const ipCell = row.insertCell(2);
+        const ips = (item[2] || "").split(/\n|,/);
+        ips.forEach(ip => {
+          const copyButton = document.createElement("button");
+          copyButton.textContent = "Copy Address";
+          copyButton.className = "copy-btn";
+          
+          const notification = document.createElement("div");
+          notification.className = "notification";
+          notification.textContent = "Copied!";
+          copyButton.appendChild(notification);
+          
+          copyButton.onclick = () => {
+            navigator.clipboard.writeText(ip.trim()).then(() => {
+              notification.style.display = 'block';
+              setTimeout(() => { notification.style.display = 'none'; }, 2000);
+            });
+          };
+          
+          ipCell.appendChild(copyButton);
+        });
+        
+        row.ins
+        ertCell(3).textContent = item[3] ? new Date(item[3]).toLocaleString() : "N/A";
+      });
     }
-
-    window.onload = fetchData;
-
-     
   </script>
-
-  
-
 </body>
 </html>
