@@ -59,6 +59,22 @@
       padding: 20px;
       border-radius: 5px;
       text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .form-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-group label {
+      flex: 1;
+      font-weight: bold;
+    }
+    .form-group input, .form-group select {
+      flex: 2;
+      padding: 8px;
     }
   </style>
   <script type="module">
@@ -77,34 +93,43 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function ensureModalElements() {
-      return document.getElementById("modal");
+    async function fetchUsers() {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const tableBody = document.getElementById("userTable").getElementsByTagName("tbody")[0];
+      tableBody.innerHTML = "";
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        const row = tableBody.insertRow();
+        row.insertCell(0).textContent = data.username || "N/A";
+        row.insertCell(1).textContent = data.role || "N/A";
+        row.insertCell(2).textContent = data.status || "N/A";
+       row.insertCell(3).textContent = data.flag || "N/A";
+        const editCell = row.insertCell(4);
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.onclick = () => showPopup("edit", doc.id, data);
+        editCell.appendChild(editBtn);
+      });
     }
 
-    window.showPopup = function(mode, id = "", data = {}) {
-      if (!ensureModalElements()) return;
-      document.getElementById("userId").value = id;
-      document.getElementById("username").value = data.username || "";
-      document.getElementById("password").value = "Atos@123";
-      document.getElementById("status").value = data.status || "Active";
-      document.getElementById("role").value = data.role || "User";
-      document.getElementById("flag").value = "1";
-      document.getElementById("modal").style.display = "flex";
-    }
-
-    window.closePopup = function() {
-      document.getElementById("modal").style.display = "none";
+    function searchUsers() {
+      const searchTerm = document.getElementById("searchBar").value.toLowerCase();
+      const rows = document.querySelectorAll("#userTable tbody tr");
+      rows.forEach(row => {
+        const username = row.cells[0].textContent.toLowerCase();
+        const role = row.cells[1].textContent.toLowerCase();
+        row.style.display = username.includes(searchTerm) || role.includes(searchTerm) ? "" : "none";
+      });
     }
 
     window.saveUser = async function() {
-      if (!ensureModalElements()) return;
       const id = document.getElementById("userId").value;
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
       const status = document.getElementById("status").value;
       const role = document.getElementById("role").value;
       const flag = "1";
-
+      
       try {
         if (id) {
           await updateDoc(doc(db, "users", id), { username, password: btoa(password), status, role, flag });
@@ -119,66 +144,68 @@
         console.error("Error saving user: ", error);
         alert("An error occurred while saving the user.");
       }
-    }
+    };
 
-    async function fetchUsers() {
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const tableBody = document.getElementById("userTable").getElementsByTagName("tbody")[0];
-      tableBody.innerHTML = "";
-      querySnapshot.forEach(doc => {
-        const row = tableBody.insertRow();
-        row.insertCell(0).textContent = doc.data().username;
-        row.insertCell(1).textContent = doc.data().status;
-        row.insertCell(2).textContent = doc.data().role;
-        row.insertCell(3).textContent = doc.data().flag;
-        const editCell = row.insertCell(4);
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
-        editBtn.onclick = () => showPopup("edit", doc.id, doc.data());
-        editCell.appendChild(editBtn);
-      });
-    }
+    window.showPopup = function(mode, id = "", data = {}) {
+      document.getElementById("userId").value = id || "";
+      document.getElementById("username").value = data.username || "";
+      document.getElementById("password").value = "Atos@123";
+      document.getElementById("status").value = data.status || "Active";
+      document.getElementById("role").value = data.role || "User";
+      document.getElementById("modal").style.display = "flex";
+    };
 
-    document.addEventListener("DOMContentLoaded", fetchUsers);
+    window.closePopup = function() {
+      document.getElementById("modal").style.display = "none";
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchUsers();
+      document.getElementById("searchBar").addEventListener("input", searchUsers);
+    });
   </script>
 </head>
 <body>
   <h1>User Management</h1>
   <button onclick="showPopup('add')">Add User</button>
-  <input type="text" id="searchBar" placeholder="Search Users">
+  <input type="text" id="searchBar" placeholder="Search Users by Username or Role">
   <table id="userTable">
     <thead>
       <tr>
         <th>Username</th>
-        <th>Status</th>
         <th>Role</th>
+        <th>Status</th>
         <th>Flag</th>
         <th>Action</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
-
   <div id="modal" class="modal">
     <div class="modal-content">
-      <h2>Add/Edit User</h2>
       <input type="hidden" id="userId">
-      <label>Username:</label>
-      <input type="text" id="username" required><br><br>
-      <label>Password:</label>
-      <input type="password" id="password" required><br><br>
-      <label>Status:</label>
-      <select id="status">
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
-      </select><br><br>
-      <label>Role:</label>
-      <select id="role">
-        <option value="admin">Admin</option>
-        <option value="FE">FE</option>
-        <option value="SL">SL</option>
-      </select><br><br>
-      <input type="hidden" id="flag">
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="Enter Username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter Password">
+      </div>
+      <div class="form-group">
+        <label for="status">Status:</label>
+        <select id="status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="role">Role:</label>
+        <select id="role">
+          <option value="admin">Admin</option>
+          <option value="FE">FE</option>
+        </select>
+      </div>
       <button onclick="saveUser()">Save</button>
       <button onclick="closePopup()">Cancel</button>
     </div>
