@@ -130,50 +130,37 @@
     <div id="toast">Port Number copied!</div>
 
     <script>
+        var nitin = localStorage.getItem("name");
+        if (nitin !== "secrate") {
+            window.location.href = "index.html";
+        }
 
-
-var nitin = localStorage.getItem("name");
-    if (nitin == "secrate") {
-
-    } else {
-        ;
-        window.location.href = "index.html";
-    }
-
-
-    if (localStorage.getItem('name') === 'logout') {
-
-        window.location.href = 'index.html';
-    } else {
-
-        var sessionTimeout = setTimeout(function () {
-
-            localStorage.setItem("name", "logout");
-            localStorage.setItem("state", "");
-            localStorage.setItem("role", "");
-            localStorage.setItem("username", "");
-            localStorage.setItem("account_status", "");
-
+        if (localStorage.getItem('name') === 'logout') {
             window.location.href = 'index.html';
-        }, 1800000);
-
-        // Reset session timeout on user activity
-        window.addEventListener('mousemove', function () {
-            clearTimeout(sessionTimeout);
-            sessionTimeout = setTimeout(function () {
-
+        } else {
+            var sessionTimeout = setTimeout(function () {
                 localStorage.setItem("name", "logout");
                 localStorage.setItem("state", "");
                 localStorage.setItem("role", "");
                 localStorage.setItem("username", "");
-                localStorage.setItem("account_status", "");;
-
+                localStorage.setItem("account_status", "");
                 window.location.href = 'index.html';
             }, 1800000);
-        });
-    }
 
-    
+            // Reset session timeout on user activity
+            window.addEventListener('mousemove', function () {
+                clearTimeout(sessionTimeout);
+                sessionTimeout = setTimeout(function () {
+                    localStorage.setItem("name", "logout");
+                    localStorage.setItem("state", "");
+                    localStorage.setItem("role", "");
+                    localStorage.setItem("username", "");
+                    localStorage.setItem("account_status", "");
+                    window.location.href = 'index.html';
+                }, 1800000);
+            });
+        }
+
         const apiUrl = "https://script.google.com/macros/s/AKfycbydRODgrGHd7zJvp443DrAqxgd-Q9h6ITA9MRrWVovJ7A4mOx6T9vQhF2AE7FAoB67Qlg/exec";
 
         function searchSAP() {
@@ -193,20 +180,22 @@ var nitin = localStorage.getItem("name");
             resultTable.style.display = "none"; 
 
             fetch(`${apiUrl}?site_id=${sapCode}`)
-                .then(response => response.text())
-                .then(port => {
-                    if (port.includes("Error")) {
+                .then(response => response.json()) // Parse JSON response
+                .then(data => {
+                    if (data.columnB && data.port) {
+                        // Update Site Name (column B) and Port Number (column C)
+                        document.getElementById("siteName").innerText = data.columnB;
+                        document.getElementById("portNumber").innerText = data.port;
+                        resultTable.style.display = "table";
+                    } else {
                         showToast("SAP Code not found");
                         resultTable.style.display = "none";
-                    } else {
-                        document.getElementById("siteName").innerText = sapCode; // Site Name will be SAP Code for now
-                        document.getElementById("portNumber").innerText = port;
-                        resultTable.style.display = "table";
                     }
                 })
                 .catch(error => {
                     console.error("Error fetching data:", error);
                     showToast("Failed to fetch data");
+                    resultTable.style.display = "none";
                 })
                 .finally(() => {
                     // Enable button & hide loader
@@ -234,6 +223,5 @@ var nitin = localStorage.getItem("name");
             }, 3000);
         }
     </script>
-
 </body>
 </html>
