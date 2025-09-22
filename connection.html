@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connections</title>
+<style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e2e8f0; margin:0; padding:0;}
+    h1 { text-align:center; margin-top:30px; color:#1e293b; }
+    #loginForm { max-width:400px; background:white; padding:30px; border-radius:10px; margin:40px auto; box-shadow:0 8px 20px rgba(0,0,0,0.2); text-align:center; }
+    #loginForm input { width:80%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #cbd5e1; }
+    #loginForm button { width:85%; padding:10px; margin-top:10px; background-color:#2563eb; color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer; transition:0.3s; }
+    #loginForm button:hover { background-color:#1d4ed8; }
+    .error { color:red; margin-top:10px; }
+
+    #connectionsWrapper { max-width:900px; margin:30px auto; background:white; border-radius:10px; padding:20px; box-shadow:0 8px 20px rgba(0,0,0,0.15); display:none; }
+    #userInfo { text-align:right; margin-bottom:10px; font-weight:bold; }
+    #userInfo button { padding:5px 10px; margin-left:10px; cursor:pointer; background:#ef4444; color:white; border:none; border-radius:5px; }
+    #searchInput { width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid #cbd5e1; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:12px 15px; border-bottom:1px solid #e2e8f0; text-align:left; }
+    th { background-color:#2563eb; color:white; }
+    tr:hover { background-color:#f1f5f9; }
+    @media(max-width:600px){ #loginForm,#connectionsWrapper{width:90%; padding:20px;} th,td{font-size:14px;} }
+</style>
+</head>
+<body>
+
+<h1>Active Connections</h1>
+
+<!-- Login Form -->
+<div id="loginForm">
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+    <div id="loginError" class="error"></div>
+</div>
+
+<!-- Table Section -->
+<div id="connectionsWrapper">
+    <div id="userInfo">
+        Logged in as: <span id="loggedUser"></span>
+        <button onclick="logout()">Logout</button>
+    </div>
+    <input type="text" id="searchInput" placeholder="Search by RO Code or RO Name" onkeyup="filterTable()" />
+    <table id="connectionsTable">
+        <thead>
+            <tr>
+                <th>RO Code</th>
+                <th>RO Name</th>
+                <th>Port</th>
+            </tr>
+        </thead>
+        <tbody id="connectionsBody"></tbody>
+    </table>
+</div>
+
+<script>
+let connectionsData = [];
+let currentUser = '';
+
+const loginBtn = document.getElementById('loginBtn');
+loginBtn.addEventListener('click', login);
+
+// Enter key support for username and password fields
+document.getElementById('username').addEventListener('keypress', function(e){
+    if(e.key === 'Enter') login();
+});
+document.getElementById('password').addEventListener('keypress', function(e){
+    if(e.key === 'Enter') login();
+});
+
+async function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('loginError');
+
+    try {
+        const res = await fetch('https://nadnitin.ddns.net/api/connections', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({username,password})
+        });
+
+        if(res.status===401){
+            errorDiv.textContent="Invalid username or password!";
+            return;
+        }
+
+        const data = await res.json();
+        if(data.error){ errorDiv.textContent=data.error; return; }
+
+        connectionsData = data;
+        currentUser = username;
+        document.getElementById('loggedUser').textContent = currentUser;
+
+        document.getElementById('loginForm').style.display='none';
+        document.getElementById('connectionsWrapper').style.display='block';
+        renderTable(connectionsData);
+
+    } catch(err){
+        errorDiv.textContent="Error: "+err.message;
+    }
+}
+
+function logout(){
+    connectionsData = [];
+    currentUser = '';
+    document.getElementById('username').value='';
+    document.getElementById('password').value='';
+    document.getElementById('loginForm').style.display='block';
+    document.getElementById('connectionsWrapper').style.display='none';
+    document.getElementById('searchInput').value='';
+}
+
+function renderTable(data){
+    const tableBody = document.getElementById('connectionsBody');
+    tableBody.innerHTML='';
+    data.forEach(conn=>{
+        const row=document.createElement('tr');
+        row.innerHTML=`<td>${conn.ro_code}</td><td>${conn.ro_name}</td><td>${conn.ro_port}</td>`;
+        tableBody.appendChild(row);
+    });
+}
+
+function filterTable(){
+    const input = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = connectionsData.filter(conn =>
+        conn.ro_code.toLowerCase().includes(input) ||
+        conn.ro_name.toLowerCase().includes(input)
+    );
+    renderTable(filtered);
+}
+</script>
+
+</body>
+</html>
