@@ -39,9 +39,14 @@
 <!-- Table Section -->
 <div id="connectionsWrapper">
     <div id="userInfo">
-        Logged in as: <span id="loggedUser"></span>
-        <button onclick="logout()">Logout</button>
-    </div>
+        <span id="reloadIcon" onclick="reloadConnections()" 
+          style="cursor:pointer; margin-left:15px; font-size:18px;" 
+          title="Reload">🔄</span>
+    Logged in as: <span id="loggedUser"></span>
+    
+    <button onclick="logout()">Logout</button>
+</div>
+    
     <input type="text" id="searchInput" placeholder="Search by RO Code or RO Name" onkeyup="filterTable()" />
     <table id="connectionsTable">
         <thead>
@@ -56,6 +61,37 @@
 </div>
 
 <script>
+
+    async function reloadConnections(){
+    try {
+        console.log("Reload Calling")
+        const res = await fetch('https://nadnitin.ddns.net/api/connections', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({username: currentUser, password: document.getElementById('password').value})
+        });
+
+        if(res.status===401){
+            alert("Session expired! Please login again.");
+            logout();
+            return;
+        }
+
+        const data = await res.json();
+        if(data.error){ 
+            alert("Error: "+data.error);
+            return;
+        }
+
+        connectionsData = data;
+        renderTable(connectionsData);
+
+    } catch(err){
+        alert("Reload error: "+err.message);
+    }
+}
+
+
 let connectionsData = [];
 let currentUser = '';
 
