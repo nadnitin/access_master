@@ -1,227 +1,769 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheet Search</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            margin: auto;
-        }
-        input {
-            padding: 10px;
-            width: 80%;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        button {
-            padding: 10px 15px;
-            font-size: 16px;
-            color: white;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:disabled {
-            background-color: #cccccc;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #loader {
-            display: none;
-            margin-top: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            display: none;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 10px;
-            text-align: left;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-        td.port-cell {
-            cursor: pointer;
-            color: #007bff;
-            text-decoration: underline;
-        }
-        td.port-cell:hover {
-            background-color: #f0f0f0;
-        }
-        /* Popup Notification (Toast) */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 10px;
-            position: fixed;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            border-radius: 5px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            transition: opacity 0.5s, bottom 0.5s;
-        }
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
-        @media (max-width: 600px) {
-            .container {
-                width: 90%;
-            }
-            input, button {
-                width: 100%;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RO port</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --brand:#0d6efd;
+      --success:#198754;
+      --danger:#dc3545;
+    }
+    body{
+      background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+      min-height:100vh;
+      padding:1.25rem;
+      -webkit-font-smoothing:antialiased;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    .card-ghost{
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+      border: 0;
+    }
+
+    /* loader overlay */
+    #loaderOverlay{
+      position:fixed;
+      inset:0;
+      z-index:2147483646;
+      background: rgba(0,0,0,0.32);
+      align-items:center;
+      justify-content:center;
+      display: none;
+      transition: opacity 0.3s ease;
+    }
+
+    /* small screens table scroll */
+    .table-responsive{ overflow:auto; -webkit-overflow-scrolling:touch; }
+
+    /* compact inputs on mobile */
+    @media (max-width:576px){
+      .inline-form .form-control { margin-bottom:.5rem; }
+      .inline-form .btn { width:100%; margin-bottom:.5rem; }
+      .top-actions { gap:.5rem; flex-direction:column; }
+    }
+
+    /* subtle rounded table rows */
+    .table tbody tr td { vertical-align: middle; }
+    .no-data { opacity:.7; text-align:center; padding:2rem; }
+
+    /* searchable input focus */
+    #searchBar:focus { box-shadow: 0 0 0 .15rem rgba(13,110,253,0.12); }
+
+    /* sticky header small tweak */
+    thead.table-light { position: sticky; top: 0; z-index: 2; }
+
+    /* Page size selector */
+    .page-size-selector {
+      width: 120px;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Search Site Name & Port</h2>
-        
-        <input type="text" id="sapCodeInput" placeholder="Enter SAP Code">
-        <button id="searchButton" onclick="searchSAP()">Search</button>
-        <div id="loader">🔄 Searching...</div>
+  <div class="container-lg">
+    <div class="row justify-content-center">
+      <div class="col-12 col-xl-10">
 
-        <table id="resultTable">
-            <thead>
-                <tr>
-                    <th>Site Name</th>
-                    <th>Port Number</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td id="siteName"></td>
-                    <td id="portNumber" class="port-cell" onclick="copyPort()"></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="card card-ghost mb-4">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#0d6efd,#6c8cff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">RO</div>
+                <div>
+                  <h4 class="mb-0">Port Data Manager</h4>
+                  <small class="text-muted">Manage Port For RO Connection</small>
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-2 top-actions">
+                <input id="searchBar" class="form-control form-control-sm" style="min-width:220px" placeholder="Search RO Code, RO Name or Port">
+                <button id="btnRefresh" class="btn btn-outline-secondary btn-sm" title="Refresh list"><i class="bi bi-arrow-clockwise"></i></button>
+                <button id="btnOpenAdd" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add</button>
+                <div class="btn-group">
+                  <button id="btnDownload" class="btn btn-success btn-sm"><i class="bi bi-download"></i> CSV</button>
+                  <label class="btn btn-outline-primary btn-sm mb-0" for="csvInput"><i class="bi bi-upload"></i> Import</label>
+                  <input id="csvInput" type="file" accept=".csv,text/csv" style="display:none">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- main table card -->
+        <div class="card card-ghost">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle" id="roTable">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:18%">RO Code</th>
+                    <th style="width:42%">RO Name</th>
+                    <th style="width:18%">Port</th>
+                    <th style="width:22%" class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody">
+                  <!-- rows inserted here -->
+                </tbody>
+              </table>
+              <div id="noData" class="no-data">Loading data...</div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <div class="d-flex align-items-center gap-3">
+                <small class="text-muted" id="rowsInfo">--</small>
+                <!-- Page Size Selector -->
+                <select id="pageSizeSelect" class="form-select form-select-sm page-size-selector">
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                  <option value="100">100 per page</option>
+                  <option value="200">200 per page</option>
+                  <option value="500">500 per page</option>
+                  <option value="1000">1000 per page</option>
+                  <option value="2000">2000 per page</option>
+                </select>
+              </div>
+              <nav>
+                <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        <footer class="text-center text-muted mt-3 mb-5">
+          <small>For user ssh protocol server</small>
+        </footer>
+
+      </div>
     </div>
+  </div>
 
-    <!-- Popup Notification -->
-    <div id="toast">Port Number copied!</div>
+  <!-- Add/Edit Modal -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form id="editForm" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add / Edit RO</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label">RO Code</label>
+            <input id="m_roCode" required class="form-control" placeholder="e.g. 160487">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">RO Name</label>
+            <input id="m_roName" required class="form-control" placeholder="e.g. Mumbai">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Port</label>
+            <input id="m_port" required class="form-control" placeholder="e.g. 5006" list="availablePorts">
+            <!-- Available Ports Dropdown -->
+            <datalist id="availablePorts">
+              <!-- Available ports will be dynamically added here -->
+            </datalist>
+            <small class="form-text text-muted">Available ports: 49152-65535 (only unused ports shown)</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    <script>
-        var nitin = localStorage.getItem("name");
-        if (nitin !== "secrate") {
-            window.location.href = "index.html";
+  <!-- Delete confirm modal -->
+  <div class="modal fade" id="confirmDelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body">
+          <p class="mb-0"><strong>Are you sure?</strong></p>
+          <small class="text-muted">This will permanently delete the selected RO entry.</small>
+        </div>
+        <div class="modal-footer">
+          <button id="delCancel" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button id="delConfirm" type="button" class="btn btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:2147483647">
+    <div id="liveToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody">Saved</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- loader overlay -->
+  <div id="loaderOverlay">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS (bundle includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // ====== CONFIG ======
+    const API_URL = 'http://nadnitin.ddns.net:5007/api/data';
+    let PAGE_SIZE = 25; // Default page size
+
+    // ====== UI refs ======
+    const tableBody = document.getElementById('tableBody');
+    const noData = document.getElementById('noData');
+    const rowsInfo = document.getElementById('rowsInfo');
+    const searchBar = document.getElementById('searchBar');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const btnOpenAdd = document.getElementById('btnOpenAdd');
+    const btnDownload = document.getElementById('btnDownload');
+    const csvInput = document.getElementById('csvInput');
+    const loaderOverlay = document.getElementById('loaderOverlay');
+    const availablePorts = document.getElementById('availablePorts');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+
+    const editModalEl = document.getElementById('editModal');
+    const editModal = new bootstrap.Modal(editModalEl, { backdrop: 'static' });
+    const editForm = document.getElementById('editForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const m_roCode = document.getElementById('m_roCode');
+    const m_roName = document.getElementById('m_roName');
+    const m_port = document.getElementById('m_port');
+
+    const confirmDelModalEl = document.getElementById('confirmDelModal');
+    const confirmDelModal = new bootstrap.Modal(confirmDelModalEl);
+    const delConfirm = document.getElementById('delConfirm');
+
+    const toastEl = document.getElementById('liveToast');
+    const toast = new bootstrap.Toast(toastEl, { delay: 2800 });
+
+    // ====== AVAILABLE PORTS MANAGEMENT ======
+    function updateAvailablePorts() {
+      const startPort = 49152;
+      const endPort = 65535;
+      
+      // Get currently used ports from data
+      const usedPorts = new Set();
+      allData.forEach(row => {
+        const port = parseInt(row.Port);
+        if (!isNaN(port) && port >= startPort && port <= endPort) {
+          usedPorts.add(port);
         }
+      });
+      
+      // Clear existing options
+      availablePorts.innerHTML = '';
+      
+      // Add available ports to dropdown (only unused ones)
+      let addedCount = 0;
+      const maxSuggestions = 100;
+      
+      for (let port = startPort; port <= endPort && addedCount < maxSuggestions; port++) {
+        if (!usedPorts.has(port)) {
+          const option = document.createElement('option');
+          option.value = port;
+          availablePorts.appendChild(option);
+          addedCount++;
+        }
+      }
+      
+      console.log(`Added ${addedCount} available ports to suggestions`);
+    }
+    
+    function getNextAvailablePort() {
+      const startPort = 49152;
+      const endPort = 65535;
+      
+      // Get currently used ports
+      const usedPorts = new Set();
+      allData.forEach(row => {
+        const port = parseInt(row.Port);
+        if (!isNaN(port)) {
+          usedPorts.add(port);
+        }
+      });
+      
+      // Find next available port
+      for (let port = startPort; port <= endPort; port++) {
+        if (!usedPorts.has(port)) {
+          return port;
+        }
+      }
+      return startPort;
+    }
 
-        if (localStorage.getItem('name') === 'logout') {
-            window.location.href = 'index.html';
+    // ====== PAGINATION FUNCTIONS ======
+    function renderPagination(){
+      const total = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      
+      // Start Page Button (<<)
+      const startLi = document.createElement('li');
+      startLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
+      startLi.innerHTML = `<a class="page-link" href="#" title="First page"><i class="bi bi-chevron-double-left"></i></a>`;
+      startLi.onclick = (e) => { e.preventDefault(); if(currentPage > 1){ currentPage = 1; render(); } };
+      pagination.appendChild(startLi);
+      
+      // Previous Button (<)
+      const prevLi = document.createElement('li');
+      prevLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
+      prevLi.innerHTML = `<a class="page-link" href="#" title="Previous page"><i class="bi bi-chevron-left"></i></a>`;
+      prevLi.onclick = (e) => { e.preventDefault(); if(currentPage > 1){ currentPage--; render(); } };
+      pagination.appendChild(prevLi);
+
+      // Calculate page range
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(total, startPage + 4);
+      
+      // Show first page if not in range
+      if (startPage > 1) {
+        const firstLi = document.createElement('li');
+        firstLi.className = 'page-item';
+        firstLi.innerHTML = `<a class="page-link" href="#">1</a>`;
+        firstLi.onclick = (e) => { e.preventDefault(); currentPage = 1; render(); };
+        pagination.appendChild(firstLi);
+        
+        // Add ellipsis if needed
+        if (startPage > 2) {
+          const ellipsisLi = document.createElement('li');
+          ellipsisLi.className = 'page-item disabled';
+          ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
+          pagination.appendChild(ellipsisLi);
+        }
+      }
+      
+      // Page numbers
+      for (let i = startPage; i <= endPage; i++){
+        const li = document.createElement('li');
+        li.className = 'page-item ' + (i === currentPage ? 'active' : '');
+        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        li.onclick = (e) => { e.preventDefault(); currentPage = i; render(); };
+        pagination.appendChild(li);
+      }
+      
+      // Show last page if not in range
+      if (endPage < total) {
+        // Add ellipsis if needed
+        if (endPage < total - 1) {
+          const ellipsisLi = document.createElement('li');
+          ellipsisLi.className = 'page-item disabled';
+          ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
+          pagination.appendChild(ellipsisLi);
+        }
+        
+        const lastLi = document.createElement('li');
+        lastLi.className = 'page-item';
+        lastLi.innerHTML = `<a class="page-link" href="#">${total}</a>`;
+        lastLi.onclick = (e) => { e.preventDefault(); currentPage = total; render(); };
+        pagination.appendChild(lastLi);
+      }
+
+      // Next Button (>)
+      const nextLi = document.createElement('li');
+      nextLi.className = 'page-item ' + (currentPage === total ? 'disabled' : '');
+      nextLi.innerHTML = `<a class="page-link" href="#" title="Next page"><i class="bi bi-chevron-right"></i></a>`;
+      nextLi.onclick = (e) => { e.preventDefault(); if(currentPage < total){ currentPage++; render(); } };
+      pagination.appendChild(nextLi);
+      
+      // End Page Button (>>)
+      const endLi = document.createElement('li');
+      endLi.className = 'page-item ' + (currentPage === total ? 'disabled' : '');
+      endLi.innerHTML = `<a class="page-link" href="#" title="Last page"><i class="bi bi-chevron-double-right"></i></a>`;
+      endLi.onclick = (e) => { e.preventDefault(); if(currentPage < total){ currentPage = total; render(); } };
+      pagination.appendChild(endLi);
+    }
+
+    // ====== API FUNCTIONS ======
+    async function apiFetch(url, options = {}) {
+      const fetchOptions = {
+        method: options.method || 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      };
+
+      if (options.body) {
+        fetchOptions.body = JSON.stringify(options.body);
+      }
+
+      try {
+        const response = await fetch(url, fetchOptions);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        try {
+          return await response.json();
+        } catch {
+          return { message: 'Success' };
+        }
+      } catch (error) {
+        console.error('API Fetch Error:', error);
+        throw error;
+      }
+    }
+
+    // ====== UI FUNCTIONS ======
+    function showLoader(flag){
+      if (flag) {
+        loaderOverlay.style.display = 'flex';
+        loaderOverlay.offsetHeight;
+      } else {
+        loaderOverlay.style.display = 'none';
+      }
+    }
+
+    function showToast(msg, success=true){
+      toastEl.classList.remove('text-bg-success','text-bg-danger','text-bg-warning');
+      toastEl.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
+      document.getElementById('toastBody').textContent = msg;
+      toast.show();
+    }
+
+    // ====== DATA MANAGEMENT ======
+    let allData = [];
+    let filtered = [];
+    let currentPage = 1;
+
+    async function loadData(){
+      showLoader(true);
+      noData.textContent = 'Loading...';
+      try{
+        const data = await apiFetch(API_URL);
+        allData = data.map(r => ({
+          'RO Code': String(r['RO Code'] ?? r.roCode ?? ''),
+          'RO Name': String(r['RO Name'] ?? r.roName ?? ''),
+          'Port': String(r['Port'] ?? r.port ?? '')
+        }));
+        applyFilter();
+        updateAvailablePorts();
+      }catch(err){
+        console.error('loadData error', err);
+        noData.textContent = 'Unable to load data.';
+        showToast('Failed to fetch data: ' + err.message, false);
+      }finally{
+        setTimeout(() => showLoader(false), 100);
+      }
+    }
+
+    function render(){
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageRows = filtered.slice(start, start + PAGE_SIZE);
+      tableBody.innerHTML = '';
+      
+      if (pageRows.length === 0){
+        noData.style.display = 'block';
+        noData.textContent = filtered.length === 0 ? 'No entries found.' : 'No entries on this page.';
+      } else {
+        noData.style.display = 'none';
+        for (const row of pageRows){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="text-nowrap fw-bold">${escapeHtml(row['RO Code'])}</td>
+            <td>${escapeHtml(row['RO Name'])}</td>
+            <td class="text-nowrap">${escapeHtml(row['Port'])}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary me-1" data-code="${escapeAttr(row['RO Code'])}" onclick="openEdit(this)"><i class="bi bi-pencil"></i> Edit</button>
+              <button class="btn btn-sm btn-outline-danger" data-code="${escapeAttr(row['RO Code'])}" onclick="confirmDelete(this)"><i class="bi bi-trash"></i> Delete</button>
+            </td>`;
+          tableBody.appendChild(tr);
+        }
+      }
+      
+      // Update rows info with current page size
+      const totalRows = filtered.length;
+      const startRow = totalRows === 0 ? 0 : Math.min(totalRows, start + 1);
+      const endRow = Math.min(totalRows, start + PAGE_SIZE);
+      rowsInfo.textContent = totalRows ? `Showing ${startRow}–${endRow} of ${totalRows} entries (${PAGE_SIZE} per page)` : '0 entries';
+      
+      renderPagination();
+    }
+
+    function applyFilter(){
+      const q = (searchBar.value || '').trim().toLowerCase();
+      if (!q) {
+        filtered = [...allData];
+      } else {
+        filtered = allData.filter(r =>
+          r['RO Code'].toLowerCase().includes(q) ||
+          r['RO Name'].toLowerCase().includes(q) ||
+          r['Port'].toLowerCase().includes(q)
+        );
+      }
+      currentPage = 1;
+      render();
+    }
+
+    // ====== PAGE SIZE HANDLER ======
+    pageSizeSelect.addEventListener('change', (e) => {
+      PAGE_SIZE = parseInt(e.target.value);
+      currentPage = 1;
+      render();
+    });
+
+    // ====== MODAL FUNCTIONS ======
+    btnOpenAdd.addEventListener('click', () => {
+      modalTitle.textContent = 'Add new RO';
+      m_roCode.readOnly = false;
+      m_roCode.value = '';
+      m_roName.value = '';
+      m_port.value = getNextAvailablePort();
+      editModal.show();
+    });
+
+    window.openEdit = function(btn){
+      const code = btn.dataset.code;
+      const row = allData.find(r => r['RO Code'] === code);
+      if (!row) return showToast('Row not found', false);
+      modalTitle.textContent = 'Edit RO';
+      m_roCode.value = row['RO Code'];
+      m_roCode.readOnly = true;
+      m_roName.value = row['RO Name'];
+      m_port.value = row['Port'];
+      editModal.show();
+    };
+
+    let toDeleteCode = null;
+    window.confirmDelete = function(btn){
+      toDeleteCode = btn.dataset.code;
+      confirmDelModal.show();
+    };
+    
+    delConfirm.addEventListener('click', async () => {
+      if (!toDeleteCode) return;
+      confirmDelModal.hide();
+      showLoader(true);
+      try{
+        await apiFetch(`${API_URL}/${encodeURIComponent(toDeleteCode)}`, { 
+          method: 'DELETE' 
+        });
+        showToast('Deleted successfully');
+        await loadData();
+      }catch(e){
+        console.error('Delete error:', e);
+        showToast('Delete failed: ' + e.message, false);
+      }finally{
+        showLoader(false);
+        toDeleteCode = null;
+      }
+    });
+
+    editForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const roCode = m_roCode.value.trim();
+      const roName = m_roName.value.trim();
+      const portVal = m_port.value.trim();
+      
+      if (!roCode || !roName) {
+        showToast('RO Code and RO Name are required', false);
+        return;
+      }
+
+      editModal.hide();
+      showLoader(true);
+      
+      try {
+        const data = {
+          'RO Code': roCode,
+          'RO Name': roName, 
+          'Port': portVal
+        };
+
+        if (m_roCode.readOnly) {
+          await apiFetch(`${API_URL}/${roCode}`, {
+            method: 'PUT',
+            body: data
+          });
+          showToast('Updated successfully');
         } else {
-            var sessionTimeout = setTimeout(function () {
-                localStorage.setItem("name", "logout");
-                localStorage.setItem("state", "");
-                localStorage.setItem("role", "");
-                localStorage.setItem("username", "");
-                localStorage.setItem("account_status", "");
-                window.location.href = 'index.html';
-            }, 1800000);
+          await apiFetch(API_URL, {
+            method: 'POST', 
+            body: data
+          });
+          showToast('Added successfully');
+        }
+        
+        await loadData();
+        
+      } catch(err) {
+        console.error('Save error:', err);
+        
+        if (err.message.includes('already exists')) {
+          showToast('RO Code already exists', false);
+        } else if (err.message.includes('404')) {
+          showToast('RO Code not found', false);
+        } else {
+          showToast('Save failed: ' + err.message, false);
+        }
+      } finally {
+        showLoader(false);
+      }
+    });
 
-            // Reset session timeout on user activity
-            window.addEventListener('mousemove', function () {
-                clearTimeout(sessionTimeout);
-                sessionTimeout = setTimeout(function () {
-                    localStorage.setItem("name", "logout");
-                    localStorage.setItem("state", "");
-                    localStorage.setItem("role", "");
-                    localStorage.setItem("username", "");
-                    localStorage.setItem("account_status", "");
-                    window.location.href = 'index.html';
-                }, 1800000);
-            });
+    // ====== OTHER FEATURES ======
+    searchBar.addEventListener('input', () => applyFilter());
+    btnRefresh.addEventListener('click', () => loadData());
+
+    btnDownload.addEventListener('click', () => {
+      if (!allData.length) return showToast('No data to download', false);
+      const header = ['RO Code', 'RO Name', 'Port'];
+      const rows = allData.map(r => header.map(k => csvSafe(r[k] || '')).join(','));
+      const csv = [header.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ro_ports.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('CSV downloaded successfully');
+    });
+
+    csvInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const text = event.target.result;
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          showToast('CSV file is empty or invalid', false);
+          return;
         }
 
-        const apiUrl = "https://script.google.com/macros/s/AKfycbydRODgrGHd7zJvp443DrAqxgd-Q9h6ITA9MRrWVovJ7A4mOx6T9vQhF2AE7FAoB67Qlg/exec";
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const roCodeIdx = header.findIndex(h => h.includes('ro code'));
+        const roNameIdx = header.findIndex(h => h.includes('ro name'));
+        const portIdx = header.findIndex(h => h.includes('port'));
 
-        function searchSAP() {
-            let sapCode = document.getElementById("sapCodeInput").value.trim();
-            let searchButton = document.getElementById("searchButton");
-            let loader = document.getElementById("loader");
-            let resultTable = document.getElementById("resultTable");
+        if (roCodeIdx === -1 || roNameIdx === -1) {
+          showToast('CSV must contain "RO Code" and "RO Name" columns', false);
+          return;
+        }
 
-            if (sapCode === "") {
-                showToast("Please enter a valid SAP Code");
-                return;
+        showLoader(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            const roCode = (cols[roCodeIdx] || '').trim();
+            const roName = (cols[roNameIdx] || '').trim();
+            const port = (portIdx >= 0 ? (cols[portIdx] || '').trim() : '');
+
+            if (!roCode) continue;
+
+            try {
+              await apiFetch(`${API_URL}/${encodeURIComponent(roCode)}`, {
+                method: 'PUT',
+                body: {
+                  'RO Code': roCode,
+                  'RO Name': roName,
+                  'Port': port
+                }
+              });
+              successCount++;
+            } catch (err) {
+              console.error(`Error importing row ${i}:`, err);
+              errorCount++;
             }
+          }
 
-            // Disable button & show loader
-            searchButton.disabled = true;
-            loader.style.display = "block";
-            resultTable.style.display = "none"; 
-
-            fetch(`${apiUrl}?site_id=${sapCode}`)
-                .then(response => response.json()) // Parse JSON response
-                .then(data => {
-                    if (data.columnB && data.port) {
-                        // Update Site Name (column B) and Port Number (column C)
-                        document.getElementById("siteName").innerText = data.columnB;
-                        document.getElementById("portNumber").innerText = data.port;
-                        resultTable.style.display = "table";
-                    } else {
-                        showToast("SAP Code not found");
-                        resultTable.style.display = "none";
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching data:", error);
-                    showToast("Failed to fetch data");
-                    resultTable.style.display = "none";
-                })
-                .finally(() => {
-                    // Enable button & hide loader
-                    searchButton.disabled = false;
-                    loader.style.display = "none";
-                });
+          showToast(`CSV import completed: ${successCount} successful, ${errorCount} failed`);
+          await loadData();
+        } catch (err) {
+          console.error('CSV import error:', err);
+          showToast('CSV import failed: ' + err.message, false);
+        } finally {
+          showLoader(false);
+          csvInput.value = '';
         }
+      };
+      reader.readAsText(file);
+    });
 
-        function copyPort() {
-            let portText = document.getElementById("portNumber").innerText;
-            navigator.clipboard.writeText(portText).then(() => {
-                showToast("Port Number copied: " + portText);
-            }).catch(err => {
-                console.error("Failed to copy port number:", err);
-            });
-        }
+    // ====== HELPER FUNCTIONS ======
+    function escapeHtml(s) { 
+      return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); 
+    }
+    
+    function escapeAttr(s) { 
+      return String(s).replaceAll('"','&quot;').replaceAll("'",'&#39;'); 
+    }
+    
+    function csvSafe(s) { 
+      if (String(s).includes(',') || String(s).includes('"')) {
+        return `"${String(s).replaceAll('"','""')}"`;
+      }
+      return String(s);
+    }
 
-        function showToast(message) {
-            let toast = document.getElementById("toast");
-            toast.innerText = message;
-            toast.classList.add("show");
+    // ====== INITIALIZATION ======
+    loadData();
 
-            setTimeout(() => {
-                toast.classList.remove("show");
-            }, 3000);
-        }
-    </script>
+    var nitin = localStorage.getItem("name");
+  if (nitin == "secrate") {
+  
+  } else {
+   ;
+    window.location.href = "index.html";
+  }
+  
+  
+    if (localStorage.getItem('name') === 'logout') {
+      
+      window.location.href = 'index.html';
+    } else {
+      
+      var sessionTimeout = setTimeout(function () {
+        
+        localStorage.setItem("name","logout");
+      localStorage.setItem("state","");
+      localStorage.setItem("role","");
+      localStorage.setItem("username","");
+      localStorage.setItem("account_status","");
+        
+        window.location.href = 'index.html';
+      }, 1800000); 
+  
+      // Reset session timeout on user activity
+      window.addEventListener('mousemove', function () {
+        clearTimeout(sessionTimeout);
+        sessionTimeout = setTimeout(function () {
+          
+          localStorage.setItem("name","logout");
+      localStorage.setItem("state","");
+      localStorage.setItem("role","");
+      localStorage.setItem("username","");
+      localStorage.setItem("account_status","");;
+          
+          window.location.href = 'index.html';
+        }, 1800000); 
+      });
+    }
+  </script>
 </body>
 </html>
