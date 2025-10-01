@@ -82,13 +82,13 @@
               <div class="d-flex align-items-center gap-3">
                 <div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#0d6efd,#6c8cff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">RO</div>
                 <div>
-                  <h4 class="mb-0">Port Data Manager</h4>
-                  <small class="text-muted">Manage Port For RO Connection</small>
+                  <h4 class="mb-0">port Data Manager</h4>
+                  <small class="text-muted">Manage port For RO Connection</small>
                 </div>
               </div>
 
               <div class="d-flex align-items-center gap-2 top-actions">
-                <input id="searchBar" class="form-control form-control-sm" style="min-width:220px" placeholder="Search RO Code, RO Name or Port">
+                <input id="searchBar" class="form-control form-control-sm" style="min-width:220px" placeholder="Search RO Code, RO Name or port">
                 <button id="btnRefresh" class="btn btn-outline-secondary btn-sm" title="Refresh list"><i class="bi bi-arrow-clockwise"></i></button>
                 <button id="btnOpenAdd" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add</button>
                 <div class="btn-group">
@@ -110,7 +110,7 @@
                   <tr>
                     <th style="width:18%">RO Code</th>
                     <th style="width:42%">RO Name</th>
-                    <th style="width:18%">Port</th>
+                    <th style="width:18%">port</th>
                     <th style="width:22%" class="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -167,10 +167,10 @@
             <input id="m_roName" required class="form-control" placeholder="e.g. Mumbai">
           </div>
           <div class="mb-3">
-            <label class="form-label">Port</label>
-            <input id="m_port" required class="form-control" placeholder="e.g. 5006" list="availablePorts">
-            <!-- Available Ports Dropdown -->
-            <datalist id="availablePorts">
+            <label class="form-label">port</label>
+            <input id="m_port" required class="form-control" placeholder="e.g. 5006" list="availableports">
+            <!-- Available ports Dropdown -->
+            <datalist id="availableports">
               <!-- Available ports will be dynamically added here -->
             </datalist>
             <small class="form-text text-muted">Available ports: 49152-65535 (only unused ports shown)</small>
@@ -235,7 +235,7 @@
     const btnDownload = document.getElementById('btnDownload');
     const csvInput = document.getElementById('csvInput');
     const loaderOverlay = document.getElementById('loaderOverlay');
-    const availablePorts = document.getElementById('availablePorts');
+    const availableports = document.getElementById('availableports');
     const pageSizeSelect = document.getElementById('pageSizeSelect');
 
     const editModalEl = document.getElementById('editModal');
@@ -253,32 +253,32 @@
     const toastEl = document.getElementById('liveToast');
     const toast = new bootstrap.Toast(toastEl, { delay: 2800 });
 
-    // ====== AVAILABLE PORTS MANAGEMENT ======
-    function updateAvailablePorts() {
-      const startPort = 49152;
-      const endPort = 65535;
+    // ====== AVAILABLE portS MANAGEMENT ======
+    function updateAvailableports() {
+      const startport = 49152;
+      const endport = 65535;
       
       // Get currently used ports from data
-      const usedPorts = new Set();
+      const usedports = new Set();
       allData.forEach(row => {
-        const port = parseInt(row.Port);
-        if (!isNaN(port) && port >= startPort && port <= endPort) {
-          usedPorts.add(port);
+        const port = parseInt(row.port);
+        if (!isNaN(port) && port >= startport && port <= endport) {
+          usedports.add(port);
         }
       });
       
       // Clear existing options
-      availablePorts.innerHTML = '';
+      availableports.innerHTML = '';
       
       // Add available ports to dropdown (only unused ones)
       let addedCount = 0;
       const maxSuggestions = 100;
       
-      for (let port = startPort; port <= endPort && addedCount < maxSuggestions; port++) {
-        if (!usedPorts.has(port)) {
+      for (let port = startport; port <= endport && addedCount < maxSuggestions; port++) {
+        if (!usedports.has(port)) {
           const option = document.createElement('option');
           option.value = port;
-          availablePorts.appendChild(option);
+          availableports.appendChild(option);
           addedCount++;
         }
       }
@@ -286,26 +286,26 @@
       console.log(`Added ${addedCount} available ports to suggestions`);
     }
     
-    function getNextAvailablePort() {
-      const startPort = 49152;
-      const endPort = 65535;
+    function getNextAvailableport() {
+      const startport = 49152;
+      const endport = 65535;
       
       // Get currently used ports
-      const usedPorts = new Set();
+      const usedports = new Set();
       allData.forEach(row => {
-        const port = parseInt(row.Port);
+        const port = parseInt(row.port);
         if (!isNaN(port)) {
-          usedPorts.add(port);
+          usedports.add(port);
         }
       });
       
       // Find next available port
-      for (let port = startPort; port <= endPort; port++) {
-        if (!usedPorts.has(port)) {
+      for (let port = startport; port <= endport; port++) {
+        if (!usedports.has(port)) {
           return port;
         }
       }
-      return startPort;
+      return startport;
     }
 
     // ====== PAGINATION FUNCTIONS ======
@@ -453,10 +453,10 @@
         allData = data.map(r => ({
           'RO Code': String(r['RO Code'] ?? r.roCode ?? ''),
           'RO Name': String(r['RO Name'] ?? r.roName ?? ''),
-          'Port': String(r['Port'] ?? r.port ?? '')
+          'port': String(r['port'] ?? r.port ?? '')
         }));
         applyFilter();
-        updateAvailablePorts();
+        updateAvailableports();
       }catch(err){
         console.error('loadData error', err);
         noData.textContent = 'Unable to load data.';
@@ -481,7 +481,7 @@
           tr.innerHTML = `
             <td class="text-nowrap fw-bold">${escapeHtml(row['RO Code'])}</td>
             <td>${escapeHtml(row['RO Name'])}</td>
-            <td class="text-nowrap">${escapeHtml(row['Port'])}</td>
+            <td class="text-nowrap">${escapeHtml(row['port'])}</td>
             <td class="text-end">
               <button class="btn btn-sm btn-outline-primary me-1" data-code="${escapeAttr(row['RO Code'])}" onclick="openEdit(this)"><i class="bi bi-pencil"></i> Edit</button>
               <button class="btn btn-sm btn-outline-danger" data-code="${escapeAttr(row['RO Code'])}" onclick="confirmDelete(this)"><i class="bi bi-trash"></i> Delete</button>
@@ -507,7 +507,7 @@
         filtered = allData.filter(r =>
           r['RO Code'].toLowerCase().includes(q) ||
           r['RO Name'].toLowerCase().includes(q) ||
-          r['Port'].toLowerCase().includes(q)
+          r['port'].toLowerCase().includes(q)
         );
       }
       currentPage = 1;
@@ -527,7 +527,7 @@
       m_roCode.readOnly = false;
       m_roCode.value = '';
       m_roName.value = '';
-      m_port.value = getNextAvailablePort();
+      m_port.value = getNextAvailableport();
       editModal.show();
     });
 
@@ -539,7 +539,7 @@
       m_roCode.value = row['RO Code'];
       m_roCode.readOnly = true;
       m_roName.value = row['RO Name'];
-      m_port.value = row['Port'];
+      m_port.value = row['port'];
       editModal.show();
     };
 
@@ -586,7 +586,7 @@
         const data = {
           'RO Code': roCode,
           'RO Name': roName, 
-          'Port': portVal
+          'port': portVal
         };
 
         if (m_roCode.readOnly) {
@@ -626,7 +626,7 @@
 
     btnDownload.addEventListener('click', () => {
       if (!allData.length) return showToast('No data to download', false);
-      const header = ['RO Code', 'RO Name', 'Port'];
+      const header = ['RO Code', 'RO Name', 'port'];
       const rows = allData.map(r => header.map(k => csvSafe(r[k] || '')).join(','));
       const csv = [header.join(','), ...rows].join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -682,7 +682,7 @@
                 body: {
                   'RO Code': roCode,
                   'RO Name': roName,
-                  'Port': port
+                  'port': port
                 }
               });
               successCount++;
@@ -767,4 +767,5 @@
   </script>
 </body>
 </html>
+
 
