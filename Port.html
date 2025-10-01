@@ -221,551 +221,447 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // ====== CONFIG ======
-    const API_URL = 'https://nadnitin.ddns.net/api/data';
-    let PAGE_SIZE = 25; // Default page size
+  // ====== CONFIG ======
+  const API_URL = 'https://nadnitin.ddns.net/api/data';
+  let PAGE_SIZE = 25; // Default page size
 
-    // ====== UI refs ======
-    const tableBody = document.getElementById('tableBody');
-    const noData = document.getElementById('noData');
-    const rowsInfo = document.getElementById('rowsInfo');
-    const searchBar = document.getElementById('searchBar');
-    const btnRefresh = document.getElementById('btnRefresh');
-    const btnOpenAdd = document.getElementById('btnOpenAdd');
-    const btnDownload = document.getElementById('btnDownload');
-    const csvInput = document.getElementById('csvInput');
-    const loaderOverlay = document.getElementById('loaderOverlay');
-    const availableports = document.getElementById('availableports');
-    const pageSizeSelect = document.getElementById('pageSizeSelect');
+  // ====== UI refs ======
+  const tableBody = document.getElementById('tableBody');
+  const noData = document.getElementById('noData');
+  const rowsInfo = document.getElementById('rowsInfo');
+  const searchBar = document.getElementById('searchBar');
+  const btnRefresh = document.getElementById('btnRefresh');
+  const btnOpenAdd = document.getElementById('btnOpenAdd');
+  const btnDownload = document.getElementById('btnDownload');
+  const csvInput = document.getElementById('csvInput');
+  const loaderOverlay = document.getElementById('loaderOverlay');
+  const availableports = document.getElementById('availableports');
+  const pageSizeSelect = document.getElementById('pageSizeSelect');
 
-    const editModalEl = document.getElementById('editModal');
-    const editModal = new bootstrap.Modal(editModalEl, { backdrop: 'static' });
-    const editForm = document.getElementById('editForm');
-    const modalTitle = document.getElementById('modalTitle');
-    const m_roCode = document.getElementById('m_roCode');
-    const m_roName = document.getElementById('m_roName');
-    const m_port = document.getElementById('m_port');
+  const editModalEl = document.getElementById('editModal');
+  const editModal = new bootstrap.Modal(editModalEl, { backdrop: 'static' });
+  const editForm = document.getElementById('editForm');
+  const modalTitle = document.getElementById('modalTitle');
+  const m_roCode = document.getElementById('m_roCode');
+  const m_roName = document.getElementById('m_roName');
+  const m_port = document.getElementById('m_port');
 
-    const confirmDelModalEl = document.getElementById('confirmDelModal');
-    const confirmDelModal = new bootstrap.Modal(confirmDelModalEl);
-    const delConfirm = document.getElementById('delConfirm');
+  const confirmDelModalEl = document.getElementById('confirmDelModal');
+  const confirmDelModal = new bootstrap.Modal(confirmDelModalEl);
+  const delConfirm = document.getElementById('delConfirm');
 
-    const toastEl = document.getElementById('liveToast');
-    const toast = new bootstrap.Toast(toastEl, { delay: 2800 });
+  const toastEl = document.getElementById('liveToast');
+  const toast = new bootstrap.Toast(toastEl, { delay: 2800 });
 
-    // ====== AVAILABLE portS MANAGEMENT ======
-    function updateAvailableports() {
-      const startport = 49152;
-      const endport = 65535;
-      
-      // Get currently used ports from data
-      const usedports = new Set();
-      allData.forEach(row => {
-        const port = parseInt(row.port);
-        if (!isNaN(port) && port >= startport && port <= endport) {
-          usedports.add(port);
-        }
-      });
-      
-      // Clear existing options
-      availableports.innerHTML = '';
-      
-      // Add available ports to dropdown (only unused ones)
-      let addedCount = 0;
-      const maxSuggestions = 100;
-      
-      for (let port = startport; port <= endport && addedCount < maxSuggestions; port++) {
-        if (!usedports.has(port)) {
-          const option = document.createElement('option');
-          option.value = port;
-          availableports.appendChild(option);
-          addedCount++;
-        }
-      }
-      
-      console.log(`Added ${addedCount} available ports to suggestions`);
-    }
-    
-    function getNextAvailableport() {
-      const startport = 49152;
-      const endport = 65535;
-      
-      // Get currently used ports
-      const usedports = new Set();
-      allData.forEach(row => {
-        const port = parseInt(row.port);
-        if (!isNaN(port)) {
-          usedports.add(port);
-        }
-      });
-      
-      // Find next available port
-      for (let port = startport; port <= endport; port++) {
-        if (!usedports.has(port)) {
-          return port;
-        }
-      }
-      return startport;
-    }
-
-    // ====== PAGINATION FUNCTIONS ======
-    function renderPagination(){
-      const total = Math.ceil(filtered.length / PAGE_SIZE) || 1;
-      const pagination = document.getElementById('pagination');
-      pagination.innerHTML = '';
-      
-      // Start Page Button (<<)
-      const startLi = document.createElement('li');
-      startLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
-      startLi.innerHTML = `<a class="page-link" href="#" title="First page"><i class="bi bi-chevron-double-left"></i></a>`;
-      startLi.onclick = (e) => { e.preventDefault(); if(currentPage > 1){ currentPage = 1; render(); } };
-      pagination.appendChild(startLi);
-      
-      // Previous Button (<)
-      const prevLi = document.createElement('li');
-      prevLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
-      prevLi.innerHTML = `<a class="page-link" href="#" title="Previous page"><i class="bi bi-chevron-left"></i></a>`;
-      prevLi.onclick = (e) => { e.preventDefault(); if(currentPage > 1){ currentPage--; render(); } };
-      pagination.appendChild(prevLi);
-
-      // Calculate page range
-      const startPage = Math.max(1, currentPage - 2);
-      const endPage = Math.min(total, startPage + 4);
-      
-      // Show first page if not in range
-      if (startPage > 1) {
-        const firstLi = document.createElement('li');
-        firstLi.className = 'page-item';
-        firstLi.innerHTML = `<a class="page-link" href="#">1</a>`;
-        firstLi.onclick = (e) => { e.preventDefault(); currentPage = 1; render(); };
-        pagination.appendChild(firstLi);
-        
-        // Add ellipsis if needed
-        if (startPage > 2) {
-          const ellipsisLi = document.createElement('li');
-          ellipsisLi.className = 'page-item disabled';
-          ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
-          pagination.appendChild(ellipsisLi);
-        }
-      }
-      
-      // Page numbers
-      for (let i = startPage; i <= endPage; i++){
-        const li = document.createElement('li');
-        li.className = 'page-item ' + (i === currentPage ? 'active' : '');
-        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-        li.onclick = (e) => { e.preventDefault(); currentPage = i; render(); };
-        pagination.appendChild(li);
-      }
-      
-      // Show last page if not in range
-      if (endPage < total) {
-        // Add ellipsis if needed
-        if (endPage < total - 1) {
-          const ellipsisLi = document.createElement('li');
-          ellipsisLi.className = 'page-item disabled';
-          ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
-          pagination.appendChild(ellipsisLi);
-        }
-        
-        const lastLi = document.createElement('li');
-        lastLi.className = 'page-item';
-        lastLi.innerHTML = `<a class="page-link" href="#">${total}</a>`;
-        lastLi.onclick = (e) => { e.preventDefault(); currentPage = total; render(); };
-        pagination.appendChild(lastLi);
-      }
-
-      // Next Button (>)
-      const nextLi = document.createElement('li');
-      nextLi.className = 'page-item ' + (currentPage === total ? 'disabled' : '');
-      nextLi.innerHTML = `<a class="page-link" href="#" title="Next page"><i class="bi bi-chevron-right"></i></a>`;
-      nextLi.onclick = (e) => { e.preventDefault(); if(currentPage < total){ currentPage++; render(); } };
-      pagination.appendChild(nextLi);
-      
-      // End Page Button (>>)
-      const endLi = document.createElement('li');
-      endLi.className = 'page-item ' + (currentPage === total ? 'disabled' : '');
-      endLi.innerHTML = `<a class="page-link" href="#" title="Last page"><i class="bi bi-chevron-double-right"></i></a>`;
-      endLi.onclick = (e) => { e.preventDefault(); if(currentPage < total){ currentPage = total; render(); } };
-      pagination.appendChild(endLi);
-    }
-
-    // ====== API FUNCTIONS ======
-    async function apiFetch(url, options = {}) {
-      const fetchOptions = {
-        method: options.method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      };
-
-      if (options.body) {
-        fetchOptions.body = JSON.stringify(options.body);
-      }
-
-      try {
-        const response = await fetch(url, fetchOptions);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-        
-        try {
-          return await response.json();
-        } catch {
-          return { message: 'Success' };
-        }
-      } catch (error) {
-        console.error('API Fetch Error:', error);
-        throw error;
-      }
-    }
-
-    // ====== UI FUNCTIONS ======
-    function showLoader(flag){
-      if (flag) {
-        loaderOverlay.style.display = 'flex';
-        loaderOverlay.offsetHeight;
-      } else {
-        loaderOverlay.style.display = 'none';
-      }
-    }
-
-    function showToast(msg, success=true){
-      toastEl.classList.remove('text-bg-success','text-bg-danger','text-bg-warning');
-      toastEl.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
-      document.getElementById('toastBody').textContent = msg;
-      toast.show();
-    }
-
-    // ====== DATA MANAGEMENT ======
-    let allData = [];
-    let filtered = [];
-    let currentPage = 1;
-
-    async function loadData(){
-      showLoader(true);
-      noData.textContent = 'Loading...';
-      try{
-        const data = await apiFetch(API_URL);
-        allData = data.map(r => ({
-          'RO Code': String(r['RO Code'] ?? r.roCode ?? ''),
-          'RO Name': String(r['RO Name'] ?? r.roName ?? ''),
-          'port': String(r['port'] ?? r.port ?? '')
-        }));
-        applyFilter();
-        updateAvailableports();
-      }catch(err){
-        console.error('loadData error', err);
-        noData.textContent = 'Unable to load data.';
-        showToast('Failed to fetch data: ' + err.message, false);
-      }finally{
-        setTimeout(() => showLoader(false), 100);
-      }
-    }
-
-    function render(){
-      const start = (currentPage - 1) * PAGE_SIZE;
-      const pageRows = filtered.slice(start, start + PAGE_SIZE);
-      tableBody.innerHTML = '';
-      
-      if (pageRows.length === 0){
-        noData.style.display = 'block';
-        noData.textContent = filtered.length === 0 ? 'No entries found.' : 'No entries on this page.';
-      } else {
-        noData.style.display = 'none';
-        for (const row of pageRows){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="text-nowrap fw-bold">${escapeHtml(row['RO Code'])}</td>
-            <td>${escapeHtml(row['RO Name'])}</td>
-            <td class="text-nowrap">${escapeHtml(row['port'])}</td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-outline-primary me-1" data-code="${escapeAttr(row['RO Code'])}" onclick="openEdit(this)"><i class="bi bi-pencil"></i> Edit</button>
-              <button class="btn btn-sm btn-outline-danger" data-code="${escapeAttr(row['RO Code'])}" onclick="confirmDelete(this)"><i class="bi bi-trash"></i> Delete</button>
-            </td>`;
-          tableBody.appendChild(tr);
-        }
-      }
-      
-      // Update rows info with current page size
-      const totalRows = filtered.length;
-      const startRow = totalRows === 0 ? 0 : Math.min(totalRows, start + 1);
-      const endRow = Math.min(totalRows, start + PAGE_SIZE);
-      rowsInfo.textContent = totalRows ? `Showing ${startRow}–${endRow} of ${totalRows} entries (${PAGE_SIZE} per page)` : '0 entries';
-      
-      renderPagination();
-    }
-
-    function applyFilter(){
-      const q = (searchBar.value || '').trim().toLowerCase();
-      if (!q) {
-        filtered = [...allData];
-      } else {
-        filtered = allData.filter(r =>
-          r['RO Code'].toLowerCase().includes(q) ||
-          r['RO Name'].toLowerCase().includes(q) ||
-          r['port'].toLowerCase().includes(q)
-        );
-      }
-      currentPage = 1;
-      render();
-    }
-
-    // ====== PAGE SIZE HANDLER ======
-    pageSizeSelect.addEventListener('change', (e) => {
-      PAGE_SIZE = parseInt(e.target.value);
-      currentPage = 1;
-      render();
-    });
-
-    // ====== MODAL FUNCTIONS ======
-    btnOpenAdd.addEventListener('click', () => {
-      modalTitle.textContent = 'Add new RO';
-      m_roCode.readOnly = false;
-      m_roCode.value = '';
-      m_roName.value = '';
-      m_port.value = getNextAvailableport();
-      editModal.show();
-    });
-
-    window.openEdit = function(btn){
-      const code = btn.dataset.code;
-      const row = allData.find(r => r['RO Code'] === code);
-      if (!row) return showToast('Row not found', false);
-      modalTitle.textContent = 'Edit RO';
-      m_roCode.value = row['RO Code'];
-      m_roCode.readOnly = true;
-      m_roName.value = row['RO Name'];
-      m_port.value = row['port'];
-      editModal.show();
-    };
-
-    let toDeleteCode = null;
-    window.confirmDelete = function(btn){
-      toDeleteCode = btn.dataset.code;
-      confirmDelModal.show();
-    };
-    
-    delConfirm.addEventListener('click', async () => {
-      if (!toDeleteCode) return;
-      confirmDelModal.hide();
-      showLoader(true);
-      try{
-        await apiFetch(`${API_URL}/${encodeURIComponent(toDeleteCode)}`, { 
-          method: 'DELETE' 
-        });
-        showToast('Deleted successfully');
-        await loadData();
-      }catch(e){
-        console.error('Delete error:', e);
-        showToast('Delete failed: ' + e.message, false);
-      }finally{
-        showLoader(false);
-        toDeleteCode = null;
+  // ====== AVAILABLE portS MANAGEMENT ======
+  function updateAvailableports() {
+    const startport = 49152;
+    const endport = 65535;
+    const usedports = new Set();
+    allData.forEach(row => {
+      const port = parseInt(row.port);
+      if (!isNaN(port) && port >= startport && port <= endport) {
+        usedports.add(port);
       }
     });
 
-    editForm.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      const roCode = m_roCode.value.trim();
-      const roName = m_roName.value.trim();
-      const portVal = m_port.value.trim();
-      
-      if (!roCode || !roName) {
-        showToast('RO Code and RO Name are required', false);
-        return;
+    availableports.innerHTML = '';
+    let addedCount = 0;
+    const maxSuggestions = 100;
+    for (let port = startport; port <= endport && addedCount < maxSuggestions; port++) {
+      if (!usedports.has(port)) {
+        const option = document.createElement('option');
+        option.value = port;
+        availableports.appendChild(option);
+        addedCount++;
       }
-
-      editModal.hide();
-      showLoader(true);
-      
-      try {
-        const data = {
-          'RO Code': roCode,
-          'RO Name': roName, 
-          'port': portVal
-        };
-
-        if (m_roCode.readOnly) {
-          await apiFetch(`${API_URL}/${roCode}`, {
-            method: 'PUT',
-            body: data
-          });
-          showToast('Updated successfully');
-        } else {
-          await apiFetch(API_URL, {
-            method: 'POST', 
-            body: data
-          });
-          showToast('Added successfully');
-        }
-        
-        await loadData();
-        
-      } catch(err) {
-        console.error('Save error:', err);
-        
-        if (err.message.includes('already exists')) {
-          showToast('RO Code already exists', false);
-        } else if (err.message.includes('404')) {
-          showToast('RO Code not found', false);
-        } else {
-          showToast('Save failed: ' + err.message, false);
-        }
-      } finally {
-        showLoader(false);
-      }
-    });
-
-    // ====== OTHER FEATURES ======
-    searchBar.addEventListener('input', () => applyFilter());
-    btnRefresh.addEventListener('click', () => loadData());
-
-    btnDownload.addEventListener('click', () => {
-      if (!allData.length) return showToast('No data to download', false);
-      const header = ['RO Code', 'RO Name', 'port'];
-      const rows = allData.map(r => header.map(k => csvSafe(r[k] || '')).join(','));
-      const csv = [header.join(','), ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'ro_ports.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('CSV downloaded successfully');
-    });
-
-    csvInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const text = event.target.result;
-        const lines = text.split(/\r?\n/).filter(line => line.trim());
-        
-        if (lines.length < 2) {
-          showToast('CSV file is empty or invalid', false);
-          return;
-        }
-
-        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const roCodeIdx = header.findIndex(h => h.includes('ro code'));
-        const roNameIdx = header.findIndex(h => h.includes('ro name'));
-        const portIdx = header.findIndex(h => h.includes('port'));
-
-        if (roCodeIdx === -1 || roNameIdx === -1) {
-          showToast('CSV must contain "RO Code" and "RO Name" columns', false);
-          return;
-        }
-
-        showLoader(true);
-        let successCount = 0;
-        let errorCount = 0;
-
-        try {
-          for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',');
-            const roCode = (cols[roCodeIdx] || '').trim();
-            const roName = (cols[roNameIdx] || '').trim();
-            const port = (portIdx >= 0 ? (cols[portIdx] || '').trim() : '');
-
-            if (!roCode) continue;
-
-            try {
-              await apiFetch(`${API_URL}/${encodeURIComponent(roCode)}`, {
-                method: 'PUT',
-                body: {
-                  'RO Code': roCode,
-                  'RO Name': roName,
-                  'port': port
-                }
-              });
-              successCount++;
-            } catch (err) {
-              console.error(`Error importing row ${i}:`, err);
-              errorCount++;
-            }
-          }
-
-          showToast(`CSV import completed: ${successCount} successful, ${errorCount} failed`);
-          await loadData();
-        } catch (err) {
-          console.error('CSV import error:', err);
-          showToast('CSV import failed: ' + err.message, false);
-        } finally {
-          showLoader(false);
-          csvInput.value = '';
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    // ====== HELPER FUNCTIONS ======
-    function escapeHtml(s) { 
-      return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); 
     }
-    
-    function escapeAttr(s) { 
-      return String(s).replaceAll('"','&quot;').replaceAll("'",'&#39;'); 
-    }
-    
-    function csvSafe(s) { 
-      if (String(s).includes(',') || String(s).includes('"')) {
-        return `"${String(s).replaceAll('"','""')}"`;
-      }
-      return String(s);
-    }
-
-    // ====== INITIALIZATION ======
-    loadData();
-
-    var nitin = localStorage.getItem("name");
-  if (nitin == "secrate") {
-  
-  } else {
-   ;
-    window.location.href = "index.html";
   }
-  
-  
-    if (localStorage.getItem('name') === 'logout') {
-      
-      window.location.href = 'index.html';
-    } else {
-      
-      var sessionTimeout = setTimeout(function () {
-        
-        localStorage.setItem("name","logout");
-      localStorage.setItem("state","");
-      localStorage.setItem("role","");
-      localStorage.setItem("username","");
-      localStorage.setItem("account_status","");
-        
-        window.location.href = 'index.html';
-      }, 1800000); 
-  
-      // Reset session timeout on user activity
-      window.addEventListener('mousemove', function () {
-        clearTimeout(sessionTimeout);
-        sessionTimeout = setTimeout(function () {
-          
-          localStorage.setItem("name","logout");
-      localStorage.setItem("state","");
-      localStorage.setItem("role","");
-      localStorage.setItem("username","");
-      localStorage.setItem("account_status","");;
-          
-          window.location.href = 'index.html';
-        }, 1800000); 
-      });
+
+  function getNextAvailableport() {
+    const startport = 49152;
+    const endport = 65535;
+    const usedports = new Set();
+    allData.forEach(row => {
+      const port = parseInt(row.port);
+      if (!isNaN(port)) usedports.add(port);
+    });
+
+    for (let port = startport; port <= endport; port++) {
+      if (!usedports.has(port)) return port;
     }
-  </script>
+    return startport;
+  }
+
+  // ====== PAGINATION FUNCTIONS ======
+  function renderPagination(){
+    const total = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    const startLi = document.createElement('li');
+    startLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
+    startLi.innerHTML = `<a class="page-link" href="#" title="First page"><i class="bi bi-chevron-double-left"></i></a>`;
+    startLi.onclick = (e) => { e.preventDefault(); if(currentPage > 1){ currentPage = 1; render(); } };
+    pagination.appendChild(startLi);
+
+    const prevLi = document.createElement('li');
+    prevLi.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
+    prevLi.innerHTML = `<a class="page-link" href="#" title="Previous page"><i class="bi bi-chevron-left"></i></a>`;
+    prevLi.onclick = (e) => { e.preventDefault(); if(currentPage > 1){ currentPage--; render(); } };
+    pagination.appendChild(prevLi);
+
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(total, startPage + 4);
+
+    if (startPage > 1) {
+      const firstLi = document.createElement('li');
+      firstLi.className = 'page-item';
+      firstLi.innerHTML = `<a class="page-link" href="#">1</a>`;
+      firstLi.onclick = (e) => { e.preventDefault(); currentPage = 1; render(); };
+      pagination.appendChild(firstLi);
+      if (startPage > 2) {
+        const ellipsisLi = document.createElement('li');
+        ellipsisLi.className = 'page-item disabled';
+        ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
+        pagination.appendChild(ellipsisLi);
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++){
+      const li = document.createElement('li');
+      li.className = 'page-item ' + (i === currentPage ? 'active' : '');
+      li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+      li.onclick = (e) => { e.preventDefault(); currentPage = i; render(); };
+      pagination.appendChild(li);
+    }
+
+    if (endPage < total) {
+      if (endPage < total - 1) {
+        const ellipsisLi = document.createElement('li');
+        ellipsisLi.className = 'page-item disabled';
+        ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
+        pagination.appendChild(ellipsisLi);
+      }
+      const lastLi = document.createElement('li');
+      lastLi.className = 'page-item';
+      lastLi.innerHTML = `<a class="page-link" href="#">${total}</a>`;
+      lastLi.onclick = (e) => { e.preventDefault(); currentPage = total; render(); };
+      pagination.appendChild(lastLi);
+    }
+
+    const nextLi = document.createElement('li');
+    nextLi.className = 'page-item ' + (currentPage === total ? 'disabled' : '');
+    nextLi.innerHTML = `<a class="page-link" href="#" title="Next page"><i class="bi bi-chevron-right"></i></a>`;
+    nextLi.onclick = (e) => { e.preventDefault(); if(currentPage < total){ currentPage++; render(); } };
+    pagination.appendChild(nextLi);
+
+    const endLi = document.createElement('li');
+    endLi.className = 'page-item ' + (currentPage === total ? 'disabled' : '');
+    endLi.innerHTML = `<a class="page-link" href="#" title="Last page"><i class="bi bi-chevron-double-right"></i></a>`;
+    endLi.onclick = (e) => { e.preventDefault(); if(currentPage < total){ currentPage = total; render(); } };
+    pagination.appendChild(endLi);
+  }
+
+  // ====== API FUNCTIONS ======
+  async function apiFetch(url, options = {}) {
+    const fetchOptions = {
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    };
+    if (options.body) fetchOptions.body = JSON.stringify(options.body);
+
+    try {
+      const response = await fetch(url, fetchOptions);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      try { return await response.json(); } catch { return { message: 'Success' }; }
+    } catch (error) {
+      console.error('API Fetch Error:', error);
+      throw error;
+    }
+  }
+
+  // ====== UI FUNCTIONS ======
+  function showLoader(flag){
+    if (!loaderOverlay) return;
+    loaderOverlay.style.display = flag ? 'flex' : 'none';
+  }
+
+  function showToast(msg, success=true){
+    toastEl.classList.remove('text-bg-success','text-bg-danger','text-bg-warning');
+    toastEl.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
+    document.getElementById('toastBody').textContent = msg;
+    toast.show();
+  }
+
+  // ====== DATA MANAGEMENT ======
+  let allData = [];
+  let filtered = [];
+  let currentPage = 1;
+
+  async function loadData(){
+    showLoader(true);
+    if(noData) noData.textContent = 'Loading...';
+    try{
+      const data = await apiFetch(API_URL);
+      allData = data.map(r => ({
+        'RO Code': String(r['RO Code'] ?? r.roCode ?? ''),
+        'RO Name': String(r['RO Name'] ?? r.roName ?? ''),
+        'port': String(r['port'] ?? r.port ?? '')
+      }));
+      applyFilter();
+      updateAvailableports();
+      applyRolePermissions();
+    }catch(err){
+      console.error('loadData error', err);
+      if(noData) noData.textContent = 'Unable to load data.';
+      showToast('Failed to fetch data: ' + err.message, false);
+    }finally{
+      setTimeout(() => showLoader(false), 100);
+    }
+  }
+
+  function render(){
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = filtered.slice(start, start + PAGE_SIZE);
+    tableBody.innerHTML = '';
+
+    if (pageRows.length === 0){
+      noData.style.display = 'block';
+      noData.textContent = filtered.length === 0 ? 'No entries found.' : 'No entries on this page.';
+    } else {
+      noData.style.display = 'none';
+      for (const row of pageRows){
+        const tr = document.createElement('tr');
+        const role = localStorage.getItem('role');
+        const allowEditDelete = role === 'admin';
+        tr.innerHTML = `
+          <td class="text-nowrap fw-bold">${escapeHtml(row['RO Code'])}</td>
+          <td>${escapeHtml(row['RO Name'])}</td>
+          <td class="text-nowrap">${escapeHtml(row['port'])}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1" data-code="${escapeAttr(row['RO Code'])}" onclick="openEdit(this)" ${!allowEditDelete?'disabled':''}><i class="bi bi-pencil"></i> Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-code="${escapeAttr(row['RO Code'])}" onclick="confirmDelete(this)" ${!allowEditDelete?'disabled':''}><i class="bi bi-trash"></i> Delete</button>
+          </td>`;
+        tableBody.appendChild(tr);
+      }
+    }
+
+    const totalRows = filtered.length;
+    const startRow = totalRows === 0 ? 0 : Math.min(totalRows, start + 1);
+    const endRow = Math.min(totalRows, start + PAGE_SIZE);
+    rowsInfo.textContent = totalRows ? `Showing ${startRow}–${endRow} of ${totalRows} entries (${PAGE_SIZE} per page)` : '0 entries';
+
+    renderPagination();
+  }
+
+  function applyFilter(){
+    const q = (searchBar.value || '').trim().toLowerCase();
+    if (!q) filtered = [...allData];
+    else filtered = allData.filter(r =>
+      r['RO Code'].toLowerCase().includes(q) ||
+      r['RO Name'].toLowerCase().includes(q) ||
+      r['port'].toLowerCase().includes(q)
+    );
+    currentPage = 1;
+    render();
+  }
+
+  pageSizeSelect.addEventListener('change', (e) => {
+    PAGE_SIZE = parseInt(e.target.value);
+    currentPage = 1;
+    render();
+  });
+
+  // ====== MODAL & CRUD ======
+  btnOpenAdd.addEventListener('click', () => {
+    if(localStorage.getItem('role') !== 'admin') return alert('Permission denied');
+    modalTitle.textContent = 'Add new RO';
+    m_roCode.readOnly = false;
+    m_roCode.value = '';
+    m_roName.value = '';
+    m_port.value = getNextAvailableport();
+    editModal.show();
+  });
+
+  window.openEdit = function(btn){
+    if(localStorage.getItem('role') !== 'admin') return alert('Permission denied');
+    const code = btn.dataset.code;
+    const row = allData.find(r => r['RO Code'] === code);
+    if (!row) return showToast('Row not found', false);
+    modalTitle.textContent = 'Edit RO';
+    m_roCode.value = row['RO Code'];
+    m_roCode.readOnly = true;
+    m_roName.value = row['RO Name'];
+    m_port.value = row['port'];
+    editModal.show();
+  };
+
+  let toDeleteCode = null;
+  window.confirmDelete = function(btn){
+    if(localStorage.getItem('role') !== 'admin') return alert('Permission denied');
+    toDeleteCode = btn.dataset.code;
+    confirmDelModal.show();
+  };
+
+  delConfirm.addEventListener('click', async () => {
+    if (!toDeleteCode) return;
+    confirmDelModal.hide();
+    showLoader(true);
+    try{
+      await apiFetch(`${API_URL}/${encodeURIComponent(toDeleteCode)}`, { method: 'DELETE' });
+      showToast('Deleted successfully');
+      await loadData();
+    }catch(e){
+      console.error('Delete error:', e);
+      showToast('Delete failed: ' + e.message, false);
+    }finally{
+      showLoader(false);
+      toDeleteCode = null;
+    }
+  });
+
+  editForm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    if(localStorage.getItem('role') !== 'admin') return alert('Permission denied');
+
+    const roCode = m_roCode.value.trim();
+    const roName = m_roName.value.trim();
+    const portVal = m_port.value.trim();
+    if (!roCode || !roName) return showToast('RO Code and RO Name are required', false);
+
+    editModal.hide();
+    showLoader(true);
+    try {
+      const data = { 'RO Code': roCode, 'RO Name': roName, 'port': portVal };
+      if (m_roCode.readOnly) {
+        await apiFetch(`${API_URL}/${roCode}`, { method: 'PUT', body: data });
+        showToast('Updated successfully');
+      } else {
+        await apiFetch(API_URL, { method: 'POST', body: data });
+        showToast('Added successfully');
+      }
+      await loadData();
+    } catch(err) {
+      console.error('Save error:', err);
+      showToast('Save failed: ' + err.message, false);
+    } finally { showLoader(false); }
+  });
+
+  // ====== SEARCH & REFRESH ======
+  searchBar.addEventListener('input', applyFilter);
+  btnRefresh.addEventListener('click', loadData);
+
+  // ====== DOWNLOAD CSV ======
+  btnDownload.addEventListener('click', () => {
+    if (!allData.length) return showToast('No data to download', false);
+    const header = ['RO Code', 'RO Name', 'port'];
+    const rows = allData.map(r => header.map(k => csvSafe(r[k] || '')).join(','));
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ro_ports.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV downloaded successfully');
+  });
+
+  csvInput.addEventListener('change', (e) => {
+    if(localStorage.getItem('role') !== 'admin') return alert('Permission denied');
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      if (lines.length < 2) return showToast('CSV file is empty or invalid', false);
+
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const roCodeIdx = header.findIndex(h => h.includes('ro code'));
+      const roNameIdx = header.findIndex(h => h.includes('ro name'));
+      const portIdx = header.findIndex(h => h.includes('port'));
+      if (roCodeIdx === -1 || roNameIdx === -1) return showToast('CSV must contain "RO Code" and "RO Name" columns', false);
+
+      showLoader(true);
+      let successCount = 0, errorCount = 0;
+
+      try {
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',');
+          const roCode = (cols[roCodeIdx] || '').trim();
+          const roName = (cols[roNameIdx] || '').trim();
+          const port = (portIdx >= 0 ? (cols[portIdx] || '').trim() : '');
+          if (!roCode) continue;
+          try {
+            await apiFetch(`${API_URL}/${encodeURIComponent(roCode)}`, { method: 'PUT', body: { 'RO Code': roCode, 'RO Name': roName, 'port': port } });
+            successCount++;
+          } catch { errorCount++; }
+        }
+        showToast(`CSV import completed: ${successCount} successful, ${errorCount} failed`);
+        await loadData();
+      } catch(err) { showToast('CSV import failed: ' + err.message, false); }
+      finally { showLoader(false); csvInput.value = ''; }
+    };
+    reader.readAsText(file);
+  });
+
+  // ====== HELPERS ======
+  function escapeHtml(s) { return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  function escapeAttr(s) { return String(s).replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+  function csvSafe(s) { return String(s).includes(',')||String(s).includes('"')?`"${String(s).replaceAll('"','""')}"`:String(s); }
+
+  // ====== ROLE PERMISSIONS ======
+  function applyRolePermissions() {
+    const role = localStorage.getItem("role");
+    const allowEditDelete = role === "admin";
+
+    document.querySelectorAll("button[data-code]").forEach(btn => {
+      btn.disabled = !allowEditDelete;
+    });
+
+    btnOpenAdd.disabled = !allowEditDelete;
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyRolePermissions();
+    const table = document.getElementById("dataTable");
+    if (table) {
+      const observer = new MutationObserver(applyRolePermissions);
+      observer.observe(table, { childList: true, subtree: true });
+    }
+  });
+
+  // ====== SESSION & AUTH ======
+  var nitin = localStorage.getItem("name");
+  if (nitin !== "secrate" || localStorage.getItem('name') === 'logout') window.location.href = "index.html";
+
+  var sessionTimeout = setTimeout(logoutUser, 1800000);
+  window.addEventListener('mousemove', function () {
+    clearTimeout(sessionTimeout);
+    sessionTimeout = setTimeout(logoutUser, 1800000);
+  });
+
+  function logoutUser() {
+    localStorage.setItem("name", "logout");
+    localStorage.setItem("state", "");
+    localStorage.setItem("role", "");
+    localStorage.setItem("username", "");
+    localStorage.setItem("account_status", "");
+    window.location.href = 'index.html';
+  }
+
+  // ====== INIT ======
+  loadData();
+</script>
+
 </body>
 </html>
-
-
