@@ -54,9 +54,13 @@
       .top-actions { gap:.5rem; flex-direction:column; }
     }
 
-    /* subtle rounded table rows */
-    .table tbody tr td { vertical-align: middle; }
-    .no-data { opacity:.7; text-align:center; padding:2rem; }
+    /* compact table rows and columns */
+    .table tbody tr td, .table thead tr th {
+      vertical-align: middle;
+      padding: 0.3rem; /* Reduced padding for smaller row height */
+      font-size: 0.85rem; /* Smaller font size for compactness */
+    }
+    .no-data { opacity:.7; text-align:center; padding:1rem; } /* Reduced padding for no-data message */
 
     /* searchable input focus */
     #searchBar:focus { box-shadow: 0 0 0 .15rem rgba(13,110,253,0.12); }
@@ -105,13 +109,14 @@
         <div class="card card-ghost">
           <div class="card-body">
             <div class="table-responsive">
-              <table class="table table-hover align-middle" id="roTable">
+              <table class="table table-hover table-sm align-middle" id="roTable">
                 <thead class="table-light">
                   <tr>
-                    <th style="width:18%">RO Code</th>
-                    <th style="width:42%">RO Name</th>
-                    <th style="width:18%">port</th>
-                    <th style="width:22%" class="text-end">Actions</th>
+                    <th style="width:15%">RO Code</th>
+                    <th style="width:35%">RO Name</th>
+                    <th style="width:15%">Port</th>
+                    <th style="width:15%">web port</th>
+                    <th style="width:20%" class="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -167,13 +172,22 @@
             <input id="m_roName" required class="form-control" placeholder="e.g. Mumbai">
           </div>
           <div class="mb-3">
-            <label class="form-label">port</label>
+            <label class="form-label">Port</label>
             <input id="m_port" required class="form-control" placeholder="e.g. 5006" list="availableports">
             <!-- Available ports Dropdown -->
             <datalist id="availableports">
               <!-- Available ports will be dynamically added here -->
             </datalist>
             <small class="form-text text-muted">Available ports: 49152-65535 (only unused ports shown)</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">web port</label>
+            <input id="m_webport" required class="form-control" placeholder="e.g. 5007" list="availableWebports">
+            <!-- Available web ports Dropdown -->
+            <datalist id="availableWebports">
+              <!-- Available web ports will be dynamically added here -->
+            </datalist>
+            <small class="form-text text-muted">Available web ports: 10001-24000 (only unused ports shown)</small>
           </div>
         </div>
         <div class="modal-footer">
@@ -236,6 +250,7 @@
   const csvInput = document.getElementById('csvInput');
   const loaderOverlay = document.getElementById('loaderOverlay');
   const availableports = document.getElementById('availableports');
+  const availableWebports = document.getElementById('availableWebports');
   const pageSizeSelect = document.getElementById('pageSizeSelect');
 
   const editModalEl = document.getElementById('editModal');
@@ -245,6 +260,7 @@
   const m_roCode = document.getElementById('m_roCode');
   const m_roName = document.getElementById('m_roName');
   const m_port = document.getElementById('m_port');
+  const m_webport = document.getElementById('m_webport');
 
   const confirmDelModalEl = document.getElementById('confirmDelModal');
   const confirmDelModal = new bootstrap.Modal(confirmDelModalEl);
@@ -253,44 +269,80 @@
   const toastEl = document.getElementById('liveToast');
   const toast = new bootstrap.Toast(toastEl, { delay: 2800 });
 
-  // ====== AVAILABLE portS MANAGEMENT ======
+  // ====== AVAILABLE PORTS MANAGEMENT ======
   function updateAvailableports() {
-    const startport = 49152;
-    const endport = 65535;
-    const usedports = new Set();
+    const startPort = 49152;
+    const endPort = 65535;
+    const usedPorts = new Set();
     allData.forEach(row => {
       const port = parseInt(row.port);
-      if (!isNaN(port) && port >= startport && port <= endport) {
-        usedports.add(port);
+      if (!isNaN(port) && port >= startPort && port <= endPort) {
+        usedPorts.add(port);
       }
     });
 
     availableports.innerHTML = '';
     let addedCount = 0;
     const maxSuggestions = 100;
-    for (let port = startport; port <= endport && addedCount < maxSuggestions; port++) {
-      if (!usedports.has(port)) {
+    for (let port = startPort; port <= endPort && addedCount < maxSuggestions; port++) {
+      if (!usedPorts.has(port)) {
         const option = document.createElement('option');
         option.value = port;
         availableports.appendChild(option);
         addedCount++;
       }
     }
-  }
 
-  function getNextAvailableport() {
-    const startport = 49152;
-    const endport = 65535;
-    const usedports = new Set();
+    const startWebPort = 10001;
+    const endWebPort = 24000;
+    const usedWebPorts = new Set();
     allData.forEach(row => {
-      const port = parseInt(row.port);
-      if (!isNaN(port)) usedports.add(port);
+      const webport = parseInt(row['web_port']);
+      if (!isNaN(webport) && webport >= startWebPort && webport <= endWebPort) {
+        usedWebPorts.add(webport);
+      }
     });
 
-    for (let port = startport; port <= endport; port++) {
-      if (!usedports.has(port)) return port;
+    availableWebports.innerHTML = '';
+    let addedWebCount = 0;
+    for (let port = startWebPort; port <= endWebPort && addedWebCount < maxSuggestions; port++) {
+      if (!usedWebPorts.has(port)) {
+        const option = document.createElement('option');
+        option.value = port;
+        availableWebports.appendChild(option);
+        addedWebCount++;
+      }
     }
-    return startport;
+  }
+
+  function getNextAvailablePort() {
+    const startPort = 49152;
+    const endPort = 65535;
+    const usedPorts = new Set();
+    allData.forEach(row => {
+      const port = parseInt(row.port);
+      if (!isNaN(port)) usedPorts.add(port);
+    });
+
+    for (let port = startPort; port <= endPort; port++) {
+      if (!usedPorts.has(port)) return port;
+    }
+    return startPort;
+  }
+
+  function getNextAvailableWebPort() {
+    const startWebPort = 10001;
+    const endWebPort = 24000;
+    const usedWebPorts = new Set();
+    allData.forEach(row => {
+      const webport = parseInt(row['web_port']);
+      if (!isNaN(webport)) usedWebPorts.add(webport);
+    });
+
+    for (let port = startWebPort; port <= endWebPort; port++) {
+      if (!usedWebPorts.has(port)) return port;
+    }
+    return startWebPort;
   }
 
   // ====== PAGINATION FUNCTIONS ======
@@ -413,7 +465,8 @@
       allData = data.map(r => ({
         'RO Code': String(r['RO Code'] ?? r.roCode ?? ''),
         'RO Name': String(r['RO Name'] ?? r.roName ?? ''),
-        'port': String(r['port'] ?? r.port ?? '')
+        'port': String(r['port'] ?? r.port ?? ''),
+        'web_port': String(r['web_port'] ?? '')
       }));
       applyFilter();
       updateAvailableports();
@@ -445,6 +498,7 @@
           <td class="text-nowrap fw-bold">${escapeHtml(row['RO Code'])}</td>
           <td>${escapeHtml(row['RO Name'])}</td>
           <td class="text-nowrap">${escapeHtml(row['port'])}</td>
+          <td class="text-nowrap">${escapeHtml(row['web_port'])}</td>
           <td class="text-end">
             <button class="btn btn-sm btn-outline-primary me-1" data-code="${escapeAttr(row['RO Code'])}" onclick="openEdit(this)" ${!allowEditDelete?'disabled':''}><i class="bi bi-pencil"></i> Edit</button>
             <button class="btn btn-sm btn-outline-danger" data-code="${escapeAttr(row['RO Code'])}" onclick="confirmDelete(this)" ${!allowEditDelete?'disabled':''}><i class="bi bi-trash"></i> Delete</button>
@@ -467,7 +521,8 @@
     else filtered = allData.filter(r =>
       r['RO Code'].toLowerCase().includes(q) ||
       r['RO Name'].toLowerCase().includes(q) ||
-      r['port'].toLowerCase().includes(q)
+      r['port'].toLowerCase().includes(q) ||
+      r['web_port'].toLowerCase().includes(q)
     );
     currentPage = 1;
     render();
@@ -486,7 +541,8 @@
     m_roCode.readOnly = false;
     m_roCode.value = '';
     m_roName.value = '';
-    m_port.value = getNextAvailableport();
+    m_port.value = getNextAvailablePort();
+    m_webport.value = getNextAvailableWebPort();
     editModal.show();
   });
 
@@ -500,6 +556,7 @@
     m_roCode.readOnly = true;
     m_roName.value = row['RO Name'];
     m_port.value = row['port'];
+    m_webport.value = row['web_port'];
     editModal.show();
   };
 
@@ -534,12 +591,13 @@
     const roCode = m_roCode.value.trim();
     const roName = m_roName.value.trim();
     const portVal = m_port.value.trim();
+    const webportVal = m_webport.value.trim();
     if (!roCode || !roName) return showToast('RO Code and RO Name are required', false);
 
     editModal.hide();
     showLoader(true);
     try {
-      const data = { 'RO Code': roCode, 'RO Name': roName, 'port': portVal };
+      const data = { 'RO Code': roCode, 'RO Name': roName, 'port': portVal, 'web_port': webportVal };
       if (m_roCode.readOnly) {
         await apiFetch(`${API_URL}/${roCode}`, { method: 'PUT', body: data });
         showToast('Updated successfully');
@@ -561,7 +619,7 @@
   // ====== DOWNLOAD CSV ======
   btnDownload.addEventListener('click', () => {
     if (!allData.length) return showToast('No data to download', false);
-    const header = ['RO Code', 'RO Name', 'port'];
+    const header = ['RO Code', 'RO Name', 'port', 'web_port'];
     const rows = allData.map(r => header.map(k => csvSafe(r[k] || '')).join(','));
     const csv = [header.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -589,6 +647,7 @@
       const roCodeIdx = header.findIndex(h => h.includes('ro code'));
       const roNameIdx = header.findIndex(h => h.includes('ro name'));
       const portIdx = header.findIndex(h => h.includes('port'));
+      const webportIdx = header.findIndex(h => h.includes('web port') || h.includes('web_port'));
       if (roCodeIdx === -1 || roNameIdx === -1) return showToast('CSV must contain "RO Code" and "RO Name" columns', false);
 
       showLoader(true);
@@ -600,9 +659,10 @@
           const roCode = (cols[roCodeIdx] || '').trim();
           const roName = (cols[roNameIdx] || '').trim();
           const port = (portIdx >= 0 ? (cols[portIdx] || '').trim() : '');
+          const webport = (webportIdx >= 0 ? (cols[webportIdx] || '').trim() : '');
           if (!roCode) continue;
           try {
-            await apiFetch(`${API_URL}/${encodeURIComponent(roCode)}`, { method: 'PUT', body: { 'RO Code': roCode, 'RO Name': roName, 'port': port } });
+            await apiFetch(`${API_URL}/${encodeURIComponent(roCode)}`, { method: 'PUT', body: { 'RO Code': roCode, 'RO Name': roName, 'port': port, 'web_port': webport } });
             successCount++;
           } catch { errorCount++; }
         }
