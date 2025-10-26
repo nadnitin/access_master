@@ -52,7 +52,6 @@
         margin-top: 8px; 
         font-size: 0.85rem; 
     }
-
     #connectionsWrapper { 
         max-width: 900px; 
         margin: 30px auto; 
@@ -111,6 +110,12 @@
             font-size: 0.8rem; 
         }
     }
+    #connectionCount { 
+        margin-bottom: 15px; 
+        font-weight: bold; 
+        font-size: 0.9rem; 
+        color: #1e293b; 
+    }
 </style>
 </head>
 <body>
@@ -135,6 +140,7 @@
         <button onclick="logout()">Logout</button>
     </div>
     
+    <div id="connectionCount">Total Connections: 0</div>
     <input type="text" id="searchInput" placeholder="Search by RO Code, RO Name, Port, or web port" onkeyup="filterTable()" />
     <table id="connectionsTable" class="table-sm">
         <thead>
@@ -237,6 +243,7 @@ function logout(){
     document.getElementById('loginForm').style.display = 'block';
     document.getElementById('connectionsWrapper').style.display = 'none';
     document.getElementById('searchInput').value = '';
+    document.getElementById('connectionCount').textContent = 'Total Connections: 0';
 }
 
 function renderTable(data){
@@ -247,6 +254,7 @@ function renderTable(data){
         row.innerHTML = `<td>${conn.ro_code}</td><td>${conn.ro_name}</td><td>${conn.ro_port}</td><td>${conn.web_port || ''}</td>`;
         tableBody.appendChild(row);
     });
+    document.getElementById('connectionCount').textContent = `Total Connections: ${data.length}`;
 }
 
 function filterTable(){
