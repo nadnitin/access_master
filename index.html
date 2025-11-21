@@ -1,31 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Access Login</title>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-    <script type="module" src="login.js"></script>
-    <link rel="stylesheet" href="login.css">
-    
-</head>
-<body>
-    <h2>Access Master Login</h2>
-    <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" required><br><br>
-        <input type="password" id="password" placeholder="Password" required><br><br>
-        <button type="submit" id="submit">Login</button>
-        <div id="loader" class="loader"></div>
-    </form>
 
-    <div id="resetPopup">
-        <h3>Reset Password</h3>
-        <input type="password" id="oldPassword" placeholder="Old Password" required><br><br>
-        <input type="password" id="newPassword" placeholder="New Password" required><br><br>
-        <input type="password" id="confirmPassword" placeholder="Confirm Password" required><br><br>
-        <button id="resetBtn">Update Password</button>
-        <button onclick="closePasswordResetPopup()">Cancel</button>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RO Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #eef3ff;
+            font-family: Inter;
+        }
+
+        #loginBox {
+            max-width: 380px;
+            margin: 80px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        #dashboard {
+            display: none;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: 0;
+            background: #e3e9ff;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+        }
+
+        .tab-btn.active {
+            background: white;
+            border-bottom: 3px solid #0d6efd;
+        }
+
+        iframe {
+            width: 100%;
+            height: 85vh;
+            border: 0;
+            background: white;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN PAGE -->
+    <div id="loginBox">
+        <h4 class="text-center mb-3">RO System Login</h4>
+        <input id="u" class="form-control mb-2" placeholder="Username">
+        <input id="p" class="form-control mb-3" placeholder="Password" type="password">
+        <button class="btn btn-primary w-100" onclick="doLogin()">Login</button>
+        <div id="err" class="text-danger text-center mt-3"></div>
     </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="container-fluid mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex gap-2">
+                <button class="tab-btn active" id="tab-port" onclick="openTab('port')">Port Manager</button>
+                <button class="tab-btn" id="tab-conn" onclick="openTab('conn')">Active Connections</button>
+            </div>
+
+            <div>
+                Logged in as: <b id="loggedUser"></b>
+                <button class="btn btn-danger btn-sm ms-3" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <iframe id="frame" src=""></iframe>
+    </div>
+
+    <script>
+        const API = "http://103.194.228.48:5006";
+        let AUTH = { username: "", password: "" };
+
+        async function doLogin() {
+            const u = document.getElementById("u").value.trim();
+            const p = document.getElementById("p").value.trim();
+            const err = document.getElementById("err");
+
+            err.textContent = "";
+
+            if (!u || !p) {
+                err.textContent = "Enter login details";
+                return;
+            }
+
+            try {
+                const r = await fetch(API + "/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+
+                const data = await r.json();
+
+                if (!data.success) {
+                    err.textContent = "Invalid login";
+                    return;
+                }
+
+                AUTH.username = u;
+                AUTH.password = p;
+
+                document.getElementById("loginBox").style.display = "none";
+                document.getElementById("dashboard").style.display = "block";
+
+                document.getElementById("loggedUser").textContent = u;
+
+                // fix display issue
+                setTimeout(() => {
+                    document.getElementById("loggedUser").textContent = AUTH.username;
+                }, 100);
+
+                openTab('port');
+
+            } catch (e) {
+                err.textContent = "Server not reachable";
+            }
+        }
+
+
+
+        function openTab(tab) {
+            document.getElementById("tab-port").classList.remove("active");
+            document.getElementById("tab-conn").classList.remove("active");
+
+            // force update name every time
+            document.getElementById("loggedUser").textContent = AUTH.username;
+
+            if (tab === "port") {
+                document.getElementById("tab-port").classList.add("active");
+                document.getElementById("frame").src = `port.html?u=${AUTH.username}&p=${AUTH.password}`;
+            } else {
+                document.getElementById("tab-conn").classList.add("active");
+                document.getElementById("frame").src = `connection.html?u=${AUTH.username}&p=${AUTH.password}`;
+            }
+        }
+
+
+        function logout() {
+            AUTH = { username: "", password: "" };
+            document.getElementById("dashboard").style.display = "none";
+            document.getElementById("loginBox").style.display = "block";
+        }
+    </script>
+
 </body>
+
 </html>
