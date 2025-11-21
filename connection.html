@@ -1,273 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Connections</title>
-<style>
-    body { 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-        background-color: #e2e8f0; 
-        margin: 0; 
-        padding: 0;
-    }
-    h1 { 
-        text-align: center; 
-        margin-top: 30px; 
-        color: #1e293b; 
-    }
-    #loginForm { 
-        max-width: 400px; 
-        background: white; 
-        padding: 20px; 
-        border-radius: 10px; 
-        margin: 40px auto; 
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2); 
-        text-align: center; 
-    }
-    #loginForm input { 
-        width: 80%; 
-        padding: 8px; 
-        margin: 8px 0; 
-        border-radius: 5px; 
-        border: 1px solid #cbd5e1; 
-    }
-    #loginForm button { 
-        width: 85%; 
-        padding: 8px; 
-        margin-top: 8px; 
-        background-color: #2563eb; 
-        color: white; 
-        border: none; 
-        border-radius: 5px; 
-        font-weight: bold; 
-        cursor: pointer; 
-        transition: 0.3s; 
-    }
-    #loginForm button:hover { 
-        background-color: #1d4ed8; 
-    }
-    .error { 
-        color: red; 
-        margin-top: 8px; 
-        font-size: 0.85rem; 
-    }
-    #connectionsWrapper { 
-        max-width: 900px; 
-        margin: 30px auto; 
-        background: white; 
-        border-radius: 10px; 
-        padding: 15px; 
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
-        display: none; 
-    }
-    #userInfo { 
-        text-align: right; 
-        margin-bottom: 8px; 
-        font-weight: bold; 
-        font-size: 0.9rem; 
-    }
-    #userInfo button { 
-        padding: 4px 8px; 
-        margin-left: 8px; 
-        cursor: pointer; 
-        background: #ef4444; 
-        color: white; 
-        border: none; 
-        border-radius: 5px; 
-    }
-    #searchInput { 
-        width: 100%; 
-        padding: 8px; 
-        margin-bottom: 15px; 
-        border-radius: 5px; 
-        border: 1px solid #cbd5e1; 
-        font-size: 0.85rem; 
-    }
-    table { 
-        width: 100%; 
-        border-collapse: collapse; 
-    }
-    th, td { 
-        padding: 0.3rem; 
-        border-bottom: 1px solid #e2e8f0; 
-        text-align: left; 
-        font-size: 0.85rem; 
-    }
-    th { 
-        background-color: #2563eb; 
-        color: white; 
-    }
-    tr:hover { 
-        background-color: #f1f5f9; 
-    }
-    @media (max-width: 600px) { 
-        #loginForm, #connectionsWrapper { 
-            width: 90%; 
-            padding: 15px; 
-        } 
-        th, td { 
-            font-size: 0.8rem; 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RO Connection Monitor</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: #333;
         }
-    }
-    #connectionCount { 
-        margin-bottom: 15px; 
-        font-weight: bold; 
-        font-size: 0.9rem; 
-        color: #1e293b; 
-    }
-</style>
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #e0e7ff;
+            margin-bottom: 30px;
+        }
+
+        #connectionsWrapper {
+            max-width: 1400px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+
+        th {
+            background: #4c1d95;
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+
+        td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f8faff;
+        }
+
+        .status-online {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        #connectionCount {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4c1d95;
+            margin-bottom: 15px;
+        }
+
+        #loader {
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            margin-top: 40px;
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>Active Connections</h1>
+    <h1>RO Connection Monitor</h1>
+    <p class="subtitle">Real-time Controller Port Status Dashboard</p>
 
-<!-- Login Form -->
-<div id="loginForm">
-    <input type="text" id="username" placeholder="Username" />
-    <input type="password" id="password" placeholder="Password" />
-    <button id="loginBtn">Login</button>
-    <div id="loginError" class="error"></div>
-</div>
+    <div id="loader">Loading...</div>
 
-<!-- Table Section -->
-<div id="connectionsWrapper">
-    <div id="userInfo">
-        <span id="reloadIcon" onclick="reloadConnections()" 
-          style="cursor:pointer; margin-left:15px; font-size:18px;" 
-          title="Reload">🔄</span>
-        Logged in as: <span id="loggedUser"></span>
-        <button onclick="logout()">Logout</button>
+    <!-- Main Dashboard -->
+    <div id="connectionsWrapper" style="display:none;">
+
+        <div class="header-bar" style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <button onclick="reloadConnections()"
+                style="padding:8px 16px; background:#10b981; color:white; border:none; border-radius:8px;">
+                Reload
+            </button>
+
+            <div>
+                Logged in as: <b><span id="loggedUser"></span></b>
+                <button onclick="logout()"
+                    style="background:#ef4444; display: none; color:white; padding:8px 14px; border:none; border-radius:8px;">
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <div id="connectionCount">Online ROs: 0</div>
+
+        <input type="text" id="searchInput" placeholder="Search RO Code, Name, Port, Control-port, Phase..."
+            onkeyup="filterTable()"
+            style="width:100%; padding:14px; border-radius:12px; border:1px solid #ddd; font-size:16px; margin-bottom:20px;">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>RO Code</th>
+                    <th>RO Name</th>
+                    <th>Port</th>
+                    <th>Web Port</th>
+                    <th>Control Port</th>
+                    <th>Phase</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="connectionsBody"></tbody>
+        </table>
     </div>
-    
-    <div id="connectionCount">Total Connections: 0</div>
-    <input type="text" id="searchInput" placeholder="Search by RO Code, RO Name, Port, or web port" onkeyup="filterTable()" />
-    <table id="connectionsTable" class="table-sm">
-        <thead>
-            <tr>
-                <th style="width:15%">RO Code</th>
-                <th style="width:35%">RO Name</th>
-                <th style="width:15%">Port</th>
-                <th style="width:15%">web port</th>
-            </tr>
-        </thead>
-        <tbody id="connectionsBody"></tbody>
-    </table>
-</div>
 
-<script>
-async function reloadConnections(){
-    try {
-        console.log("Reload Calling");
-        const res = await fetch('https://nadnitin.ddns.net/api/connections', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username: currentUser, password: document.getElementById('password').value})
-        });
+    <script>
+        const API = "http://103.194.228.48:5006";
 
-        if(res.status === 401){
-            alert("Session expired! Please login again.");
-            logout();
-            return;
+        // Read URL parameters (same as port.html)
+        const url = new URLSearchParams(location.search);
+        const AUTH = {
+            username: url.get("u") || "",
+            password: url.get("p") || ""
+        };
+
+        let connectionsData = [];
+
+        async function loadData() {
+            if (!AUTH.username || !AUTH.password) {
+                document.getElementById("loader").innerText = "Authentication Missing!";
+                return;
+            }
+
+            try {
+                const res = await fetch(API + "/api/connections", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(AUTH)
+                });
+
+                const data = await res.json();
+
+                if (data.error) {
+                    document.getElementById("loader").innerHTML = data.error;
+                    return;
+                }
+
+                connectionsData = data;
+
+                document.getElementById("loggedUser").innerText = AUTH.username;
+
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("connectionsWrapper").style.display = "block";
+
+                renderTable(data);
+
+            } catch (e) {
+                document.getElementById("loader").innerText = "Server Not Responding";
+            }
         }
 
-        const data = await res.json();
-        if(data.error){ 
-            alert("Error: " + data.error);
-            return;
+        function renderTable(data) {
+            const online = data.filter(c => c.status === "Online");
+
+            const tbody = document.getElementById("connectionsBody");
+            tbody.innerHTML = "";
+
+            online.forEach(c => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td><b>${c.ro_code}</b></td>
+                    <td>${c.ro_name}</td>
+                    <td>${c.ro_port}</td>
+                    <td>${c.web_port}</td>
+                    <td>${c.control_port}</td>
+                    <td>${c.phase || '-'}</td>
+                    <td class="status-online">Online</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById("connectionCount").innerText =
+                `Online ROs: ${online.length}`;
         }
 
-        connectionsData = data;
-        renderTable(connectionsData);
-
-    } catch(err){
-        alert("Reload error: " + err.message);
-    }
-}
-
-let connectionsData = [];
-let currentUser = '';
-
-const loginBtn = document.getElementById('loginBtn');
-loginBtn.addEventListener('click', login);
-
-// Enter key support for username and password fields
-document.getElementById('username').addEventListener('keypress', function(e){
-    if(e.key === 'Enter') login();
-});
-document.getElementById('password').addEventListener('keypress', function(e){
-    if(e.key === 'Enter') login();
-});
-
-async function login() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const errorDiv = document.getElementById('loginError');
-
-    try {
-        const res = await fetch('https://nadnitin.ddns.net/api/connections', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username, password})
-        });
-
-        if(res.status === 401){
-            errorDiv.textContent = "Invalid username or password!";
-            return;
+        function reloadConnections() {
+            loadData();  // same function
         }
 
-        const data = await res.json();
-        if(data.error){ 
-            errorDiv.textContent = data.error; 
-            return; 
+        function filterTable() {
+            const term = document.getElementById("searchInput").value.toLowerCase();
+
+            const filtered = connectionsData
+                .filter(c => c.status === "Online")
+                .filter(c =>
+                    c.ro_code.toLowerCase().includes(term) ||
+                    c.ro_name.toLowerCase().includes(term) ||
+                    c.ro_port.includes(term) ||
+                    c.control_port.includes(term) ||
+                    c.web_port.includes(term) ||
+                    (c.phase && c.phase.toLowerCase().includes(term))
+                );
+
+            renderTable(filtered);
         }
 
-        connectionsData = data;
-        currentUser = username;
-        document.getElementById('loggedUser').textContent = currentUser;
+        function logout() {
+            window.location.href = "index.html";
+        }
 
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('connectionsWrapper').style.display = 'block';
-        renderTable(connectionsData);
-
-    } catch(err){
-        errorDiv.textContent = "Error: " + err.message;
-    }
-}
-
-function logout(){
-    connectionsData = [];
-    currentUser = '';
-    document.getElementById('username').value = '';
-    document.getElementById('password').value = '';
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('connectionsWrapper').style.display = 'none';
-    document.getElementById('searchInput').value = '';
-    document.getElementById('connectionCount').textContent = 'Total Connections: 0';
-}
-
-function renderTable(data){
-    const tableBody = document.getElementById('connectionsBody');
-    tableBody.innerHTML = '';
-    data.forEach(conn => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${conn.ro_code}</td><td>${conn.ro_name}</td><td>${conn.ro_port}</td><td>${conn.web_port || ''}</td>`;
-        tableBody.appendChild(row);
-    });
-    document.getElementById('connectionCount').textContent = `Total Connections: ${data.length}`;
-}
-
-function filterTable(){
-    const input = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = connectionsData.filter(conn =>
-        conn.ro_code.toLowerCase().includes(input) ||
-        conn.ro_name.toLowerCase().includes(input) ||
-        conn.ro_port.toLowerCase().includes(input) ||
-        (conn.web_port && conn.web_port.toLowerCase().includes(input))
-    );
-    renderTable(filtered);
-}
-</script>
+        // Auto load on page open
+        loadData();
+    </script>
 
 </body>
+
 </html>
